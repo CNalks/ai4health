@@ -1,0 +1,1489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>传染病智能预警平台 - 厦门市思明区</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+tailwind.config = {
+  darkMode: "class",
+  theme: {
+    extend: {
+      colors: {
+        "primary": "#1a355b",
+        "background-light": "#f6f7f8",
+        "background-dark": "#13181f",
+      },
+      fontFamily: {
+        "display": ["Noto Sans SC", "Inter", "sans-serif"]
+      },
+      borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+    },
+  },
+}
+</script>
+<style>
+body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
+.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.page-section { min-height: 100vh; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.animate-fade-in { animation: fade-in 0.3s ease-out; }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
+<div class="flex h-screen overflow-hidden">
+
+<!-- ========== SIDEBAR ========== -->
+<aside id="app-sidebar" class="w-60 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 hidden">
+  <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
+    <div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
+      <span class="material-symbols-outlined">health_and_safety</span>
+    </div>
+    <h2 class="text-primary dark:text-slate-100 text-sm font-bold tracking-tight leading-tight">传染病智能<br/>预警平台</h2>
+  </div>
+  <nav class="flex-1 p-3 space-y-1 overflow-y-auto text-sm">
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3">总览</p>
+    <div data-nav-link="/dashboard" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">dashboard</span><span>综合仪表盘</span>
+    </div>
+    <div data-nav-link="/command-map" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">map</span><span>指挥地图</span>
+    </div>
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3 mt-4">预警管理</p>
+    <div data-nav-link="/warning-center" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">warning</span><span>预警中心</span>
+    </div>
+    <div data-nav-link="/trend-prediction" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">trending_up</span><span>趋势预测</span>
+    </div>
+    <div data-nav-link="/vector-risk" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">bug_report</span><span>媒介风险</span>
+    </div>
+    <div data-nav-link="/respiratory-sim" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">science</span><span>呼吸道模拟</span>
+    </div>
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3 mt-4">任务管理</p>
+    <div data-nav-link="/task-center" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">task_alt</span><span>任务中心</span>
+    </div>
+    <div data-nav-link="/task-templates" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">content_copy</span><span>任务模板</span>
+    </div>
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3 mt-4">报告中心</p>
+    <div data-nav-link="/report-generate" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">auto_awesome</span><span>智能生成</span>
+    </div>
+    <div data-nav-link="/report-edit" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">edit_note</span><span>编辑发布</span>
+    </div>
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3 mt-4">数据与模型</p>
+    <div data-nav-link="/data-sources" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">database</span><span>数据源管理</span>
+    </div>
+    <div data-nav-link="/data-quality" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">query_stats</span><span>数据质量</span>
+    </div>
+    <div data-nav-link="/model-center" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">model_training</span><span>模型中心</span>
+    </div>
+    <div data-nav-link="/event-center" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">rss_feed</span><span>事件中心</span>
+    </div>
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3 mt-4">系统</p>
+    <div data-nav-link="/system-admin" class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer">
+      <span class="material-symbols-outlined text-lg">admin_panel_settings</span><span>系统管理</span>
+    </div>
+  </nav>
+  <div class="p-3 border-t border-slate-200 dark:border-slate-800">
+    <button data-action="toggle-dark" class="flex items-center gap-2 px-3 py-2 text-xs text-slate-500 hover:text-primary w-full rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+      <span class="material-symbols-outlined text-sm">dark_mode</span>切换暗色模式
+    </button>
+    <button data-action="logout" class="flex items-center gap-2 px-3 py-2 text-xs text-red-500 hover:text-red-700 w-full rounded-lg hover:bg-red-50 dark:hover:bg-red-900/10 mt-1">
+      <span class="material-symbols-outlined text-sm">logout</span>退出登录
+    </button>
+  </div>
+</aside>
+
+<!-- ========== MAIN AREA ========== -->
+<div class="flex-1 flex flex-col overflow-hidden">
+
+<!-- ========== TOP BAR ========== -->
+<header id="app-topbar" class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 hidden">
+  <div class="flex items-center gap-4">
+    <h1 class="text-sm font-bold text-primary dark:text-slate-100">厦门市思明区疾控中心</h1>
+  </div>
+  <div class="flex items-center gap-3">
+    <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 relative">
+      <span class="material-symbols-outlined text-slate-500">notifications</span>
+      <span class="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full"></span>
+    </button>
+    <div class="flex items-center gap-2">
+      <div id="topbar-avatar" class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">CZ</div>
+      <span id="topbar-username" class="text-sm font-medium hidden sm:inline">陈志明</span>
+    </div>
+  </div>
+</header>
+
+<!-- ========== CONTENT ========== -->
+<div id="main-content" class="flex-1 overflow-y-auto">
+
+<!-- ==================== PAGE 1: LOGIN ==================== -->
+<section id="page-login" class="page-section hidden">
+  <div class="min-h-screen flex">
+    <!-- Left branding -->
+    <div class="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-center items-center p-12 text-white">
+      <div class="max-w-md space-y-6">
+        <div class="flex items-center gap-3">
+          <span class="material-symbols-outlined text-4xl">health_and_safety</span>
+          <h1 class="text-2xl font-bold">传染病智能预警平台</h1>
+        </div>
+        <p class="text-white/80 leading-relaxed">厦门市思明区疾病预防控制中心 — 集成预警、响应、分析与决策支持的一体化公共卫生智慧平台。</p>
+        <div class="grid grid-cols-2 gap-4 pt-4">
+          <div class="bg-white/10 rounded-lg p-4">
+            <p class="text-2xl font-bold">12</p><p class="text-xs text-white/70">活跃预警</p>
+          </div>
+          <div class="bg-white/10 rounded-lg p-4">
+            <p class="text-2xl font-bold">10</p><p class="text-xs text-white/70">辖区街道</p>
+          </div>
+          <div class="bg-white/10 rounded-lg p-4">
+            <p class="text-2xl font-bold">24</p><p class="text-xs text-white/70">进行中任务</p>
+          </div>
+          <div class="bg-white/10 rounded-lg p-4">
+            <p class="text-2xl font-bold">99.9%</p><p class="text-xs text-white/70">系统可用率</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Right form -->
+    <div class="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-background-dark">
+      <div class="w-full max-w-sm space-y-6">
+        <div class="lg:hidden flex items-center gap-3 text-primary mb-4">
+          <span class="material-symbols-outlined text-3xl">health_and_safety</span>
+          <h1 class="text-xl font-bold">传染病智能预警平台</h1>
+        </div>
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">安全登录</h2>
+          <p class="text-slate-500 text-sm mt-1">请使用您的政务账号登录系统</p>
+        </div>
+        <form onsubmit="return false;">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">政务账号 / 邮箱</label>
+              <input type="text" class="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="请输入账号" value="admin@smcdc.gov.cn"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">密码</label>
+              <input type="password" class="w-full border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="请输入密码" value="••••••••"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">验证码</label>
+              <div class="flex gap-3">
+                <input type="text" class="flex-1 border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2.5 bg-white dark:bg-slate-800 text-sm" placeholder="请输入验证码"/>
+                <div class="w-24 bg-slate-200 dark:bg-slate-700 rounded-lg flex items-center justify-center text-xs font-bold text-primary select-none tracking-widest">A7X2</div>
+              </div>
+            </div>
+            <button data-action="login" type="button" class="w-full bg-primary text-white py-2.5 rounded-lg font-bold text-sm hover:bg-primary/90 transition-colors shadow-sm">登 录</button>
+          </div>
+        </form>
+        <div class="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <p class="text-xs font-bold text-blue-800 dark:text-blue-300 mb-1">基于角色的访问控制 (RBAC)</p>
+          <p class="text-xs text-blue-600 dark:text-blue-400">系统根据您的角色自动分配功能权限。管理员、分析师、调度员具有不同的操作范围。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 2: DASHBOARD ==================== -->
+<section id="page-dashboard" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black tracking-tight">综合仪表盘</h1>
+        <p class="text-slate-500 text-sm">厦门市思明区传染病智能预警系统 — 实时态势感知</p>
+      </div>
+      <div class="flex gap-3">
+        <button data-action="export" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">download</span>导出报告
+        </button>
+      </div>
+    </div>
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <span class="material-symbols-outlined text-rose-500">crisis_alert</span>
+          <span class="text-rose-500 text-xs font-bold bg-rose-50 dark:bg-rose-900/20 px-2 py-0.5 rounded">+2</span>
+        </div>
+        <p class="text-3xl font-bold">12</p>
+        <p class="text-sm text-slate-500 mt-1">紧急预警</p>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <span class="material-symbols-outlined text-amber-500">warning</span>
+          <span class="text-emerald-500 text-xs font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">-5%</span>
+        </div>
+        <p class="text-3xl font-bold">48</p>
+        <p class="text-sm text-slate-500 mt-1">高风险预警</p>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <span class="material-symbols-outlined text-blue-500">task_alt</span>
+          <span class="text-blue-500 text-xs font-bold">82%</span>
+        </div>
+        <p class="text-3xl font-bold">24</p>
+        <p class="text-sm text-slate-500 mt-1">进行中任务</p>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <span class="material-symbols-outlined text-slate-400">schedule</span>
+        </div>
+        <p class="text-3xl font-bold">5</p>
+        <p class="text-sm text-slate-500 mt-1">逾期预警</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Risk Forecast Chart -->
+      <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm">
+        <h3 class="font-bold mb-4">14天风险趋势预测</h3>
+        <div class="h-48">
+          <svg width="100%" height="100%" viewBox="0 0 500 160" preserveAspectRatio="none" fill="none">
+            <path d="M0 120C30 110 60 90 90 85C120 80 150 95 180 100C210 105 240 70 270 55C300 40 330 45 360 60C390 75 420 50 450 35C480 20 500 25 500 25" stroke="#1a355b" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M0 120C30 110 60 90 90 85C120 80 150 95 180 100C210 105 240 70 270 55C300 40 330 45 360 60C390 75 420 50 450 35C480 20 500 25 500 25V160H0Z" fill="url(#grad1)" opacity="0.3"/>
+            <line x1="270" y1="0" x2="270" y2="160" stroke="#94a3b8" stroke-dasharray="4" stroke-width="1"/>
+            <text x="275" y="14" font-size="10" fill="#94a3b8">今日</text>
+            <defs><linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a355b" stop-opacity="0.3"/><stop offset="100%" stop-color="#1a355b" stop-opacity="0"/></linearGradient></defs>
+          </svg>
+        </div>
+        <div class="flex justify-between text-xs text-slate-400 mt-2"><span>7天前</span><span>今日</span><span>7天后</span></div>
+      </div>
+      <!-- Risk Level -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm">
+        <h3 class="font-bold mb-4">当前风险等级</h3>
+        <div class="flex justify-center py-4">
+          <div class="relative size-32">
+            <svg class="size-full -rotate-90" viewBox="0 0 36 36">
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3"/>
+              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="3" stroke-dasharray="72, 100"/>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span class="text-2xl font-black">72</span>
+              <span class="text-xs text-amber-500 font-bold">中高风险</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Top Risk Communities Table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        <h3 class="font-bold">高风险社区排名</h3>
+        <button data-nav-link="/warning-center" class="text-primary text-xs font-bold hover:underline cursor-pointer">查看全部</button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 uppercase">
+            <tr>
+              <th class="px-5 py-3">街道</th><th class="px-5 py-3">网格</th><th class="px-5 py-3">疾病类型</th>
+              <th class="px-5 py-3">风险指数</th><th class="px-5 py-3">状态</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-semibold">筼筜街道</td><td class="px-5 py-3">A-01</td><td class="px-5 py-3">流感样病例</td>
+              <td class="px-5 py-3 font-bold text-rose-600">9.2</td>
+              <td class="px-5 py-3"><span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-2 py-0.5 rounded-full text-xs font-bold">严重</span></td>
+            </tr>
+            <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-semibold">中华街道</td><td class="px-5 py-3">A-02</td><td class="px-5 py-3">登革热</td>
+              <td class="px-5 py-3 font-bold text-amber-600">7.8</td>
+              <td class="px-5 py-3"><span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full text-xs font-bold">高风险</span></td>
+            </tr>
+            <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-semibold">鹭江街道</td><td class="px-5 py-3">B-01</td><td class="px-5 py-3">诺如病毒</td>
+              <td class="px-5 py-3 font-bold text-amber-600">6.5</td>
+              <td class="px-5 py-3"><span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full text-xs font-bold">高风险</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              <td class="px-5 py-3 font-semibold">厦港街道</td><td class="px-5 py-3">E-02</td><td class="px-5 py-3">登革热</td>
+              <td class="px-5 py-3 font-bold text-amber-600">6.1</td>
+              <td class="px-5 py-3"><span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full text-xs font-bold">高风险</span></td>
+            </tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+              <td class="px-5 py-3 font-semibold">开元街道</td><td class="px-5 py-3">B-02</td><td class="px-5 py-3">手足口病</td>
+              <td class="px-5 py-3 font-bold text-yellow-600">5.2</td>
+              <td class="px-5 py-3"><span class="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-0.5 rounded-full text-xs font-bold">中等</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 3: COMMAND MAP ==================== -->
+<section id="page-command-map" class="page-section hidden">
+  <div class="flex h-[calc(100vh-3.5rem)]">
+    <!-- Left sidebar -->
+    <div class="w-72 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 hidden lg:block">
+      <h3 class="font-bold text-sm mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">analytics</span>区域概览</h3>
+      <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="bg-rose-50 dark:bg-rose-900/10 p-3 rounded-lg text-center"><p class="text-lg font-bold text-rose-600">3</p><p class="text-[10px] text-slate-500">严重</p></div>
+        <div class="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-lg text-center"><p class="text-lg font-bold text-amber-600">5</p><p class="text-[10px] text-slate-500">高风险</p></div>
+        <div class="bg-yellow-50 dark:bg-yellow-900/10 p-3 rounded-lg text-center"><p class="text-lg font-bold text-yellow-600">4</p><p class="text-[10px] text-slate-500">中等</p></div>
+        <div class="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-lg text-center"><p class="text-lg font-bold text-blue-600">2</p><p class="text-[10px] text-slate-500">低风险</p></div>
+      </div>
+      <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">活跃图层</h4>
+      <div class="space-y-2">
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked class="rounded text-primary focus:ring-primary/20"/>风险热力图</label>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" checked class="rounded text-primary focus:ring-primary/20"/>预警标记</label>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="rounded text-primary focus:ring-primary/20"/>医疗资源</label>
+        <label class="flex items-center gap-2 text-sm"><input type="checkbox" class="rounded text-primary focus:ring-primary/20"/>人口密度</label>
+      </div>
+    </div>
+    <!-- Map area -->
+    <div class="flex-1 bg-slate-200 dark:bg-slate-800 relative">
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="text-center space-y-3">
+          <span class="material-symbols-outlined text-6xl text-slate-400">map</span>
+          <p class="text-slate-500 font-medium">厦门市思明区指挥地图</p>
+          <p class="text-xs text-slate-400">交互式地图区域 — 展示各街道风险分布</p>
+        </div>
+      </div>
+      <!-- Floating risk zones -->
+      <svg class="absolute inset-0 w-full h-full opacity-30" viewBox="0 0 800 600">
+        <polygon points="200,150 350,120 380,250 250,280" fill="#ef4444" opacity="0.4"/>
+        <polygon points="400,100 550,130 520,260 380,220" fill="#f59e0b" opacity="0.3"/>
+        <polygon points="150,300 300,280 330,420 180,430" fill="#eab308" opacity="0.3"/>
+        <polygon points="450,250 600,220 620,380 470,390" fill="#3b82f6" opacity="0.2"/>
+      </svg>
+      <!-- Floating tooltip -->
+      <div class="absolute top-8 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 p-4 w-64 z-10">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-bold">筼筜街道 · 网格04</span>
+          <span class="bg-rose-100 text-rose-700 px-2 py-0.5 text-[10px] font-bold rounded">严重</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-2">流感样病例聚集 — 风险指数 9.2</p>
+        <button data-nav-link="/warning-detail" class="text-primary text-xs font-bold hover:underline cursor-pointer">查看详情 →</button>
+      </div>
+    </div>
+    <!-- Right sidebar -->
+    <div class="w-72 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 overflow-y-auto shrink-0 hidden xl:block">
+      <h3 class="font-bold text-sm mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">folder_special</span>证据汇总</h3>
+      <div class="space-y-3">
+        <div class="bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-rose-700 dark:text-rose-400">预警 WRN-2026-0042</p>
+          <p class="text-xs text-slate-500 mt-1">筼筜街道网格04 — 流感样病例聚集</p>
+        </div>
+        <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+          <p class="text-xs font-bold text-amber-700 dark:text-amber-400">预警 WRN-2026-0041</p>
+          <p class="text-xs text-slate-500 mt-1">中华街道网格02 — 登革热布雷图指数超标</p>
+        </div>
+      </div>
+      <h4 class="text-xs font-bold text-slate-400 uppercase mt-6 mb-3">建议措施</h4>
+      <div class="space-y-2">
+        <div class="flex items-start gap-2 text-xs"><span class="material-symbols-outlined text-amber-500 text-sm mt-0.5">priority_high</span><span>立即启动流感应急响应预案</span></div>
+        <div class="flex items-start gap-2 text-xs"><span class="material-symbols-outlined text-blue-500 text-sm mt-0.5">local_hospital</span><span>增派医疗资源至筼筜街道</span></div>
+        <div class="flex items-start gap-2 text-xs"><span class="material-symbols-outlined text-emerald-500 text-sm mt-0.5">pest_control</span><span>中华街道开展蚊媒消杀作业</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 4: WARNING CENTER ==================== -->
+<section id="page-warning-center" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-black tracking-tight">预警中心</h1>
+        <p class="text-slate-500 text-sm">集中管理所有传染病预警信号</p>
+      </div>
+      <div class="flex gap-3">
+        <button data-action="export" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">download</span>导出
+        </button>
+      </div>
+    </div>
+    <!-- Summary cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold">65</p><p class="text-xs text-slate-500">活跃预警</p></div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold text-rose-600">12</p><p class="text-xs text-slate-500">严重</p></div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold text-amber-600">48</p><p class="text-xs text-slate-500">高风险</p></div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold">2.4h</p><p class="text-xs text-slate-500">平均响应时间</p></div>
+    </div>
+    <!-- Filter buttons -->
+    <div class="flex gap-2 flex-wrap">
+      <button data-filter-btn class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white">全部</button>
+      <button data-filter-btn class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">严重</button>
+      <button data-filter-btn class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">高风险</button>
+      <button data-filter-btn class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">中等</button>
+      <button data-filter-btn class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400">低风险</button>
+    </div>
+    <!-- Warning table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 uppercase">
+            <tr><th class="px-5 py-3">预警编号</th><th class="px-5 py-3">级别</th><th class="px-5 py-3">触发指标</th><th class="px-5 py-3">影响区域</th><th class="px-5 py-3">状态</th><th class="px-5 py-3">时间</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">WRN-2026-0042</td>
+              <td class="px-5 py-3"><span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-2 py-0.5 rounded-full text-xs font-bold">严重</span></td>
+              <td class="px-5 py-3">流感样病例聚集</td><td class="px-5 py-3">筼筜街道-网格04</td>
+              <td class="px-5 py-3"><span class="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs font-bold">未解决</span></td>
+              <td class="px-5 py-3 text-xs text-slate-500">2026-03-03 14:22</td>
+            </tr>
+            <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">WRN-2026-0041</td>
+              <td class="px-5 py-3"><span class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full text-xs font-bold">高风险</span></td>
+              <td class="px-5 py-3">登革热布雷图指数超标</td><td class="px-5 py-3">中华街道-网格02</td>
+              <td class="px-5 py-3"><span class="bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded-full text-xs font-bold">处理中</span></td>
+              <td class="px-5 py-3 text-xs text-slate-500">2026-03-03 14:18</td>
+            </tr>
+            <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">WRN-2026-0040</td>
+              <td class="px-5 py-3"><span class="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-0.5 rounded-full text-xs font-bold">中等</span></td>
+              <td class="px-5 py-3">诺如病毒校园聚集</td><td class="px-5 py-3">鹭江街道-网格01</td>
+              <td class="px-5 py-3"><span class="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs font-bold">未解决</span></td>
+              <td class="px-5 py-3 text-xs text-slate-500">2026-03-03 13:55</td>
+            </tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">WRN-2026-0039</td>
+              <td class="px-5 py-3"><span class="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-full text-xs font-bold">低风险</span></td>
+              <td class="px-5 py-3">手足口病季节性升高</td><td class="px-5 py-3">开元街道-网格03</td>
+              <td class="px-5 py-3"><span class="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full text-xs font-bold">已确认</span></td>
+              <td class="px-5 py-3 text-xs text-slate-500">2026-03-03 09:12</td>
+            </tr>
+            <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">WRN-2026-0038</td>
+              <td class="px-5 py-3"><span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-2 py-0.5 rounded-full text-xs font-bold">严重</span></td>
+              <td class="px-5 py-3">不明原因肺炎聚集</td><td class="px-5 py-3">厦港街道-网格01</td>
+              <td class="px-5 py-3"><span class="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs font-bold">未解决</span></td>
+              <td class="px-5 py-3 text-xs text-slate-500">2026-03-03 08:44</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs text-slate-500">
+        <span>显示 1-5 / 共 65 条</span>
+        <div class="flex gap-1">
+          <button data-page-btn class="size-7 flex items-center justify-center rounded border border-primary bg-primary text-white text-xs font-bold">1</button>
+          <button data-page-btn class="size-7 flex items-center justify-center rounded border border-slate-200 bg-white dark:bg-slate-800 text-slate-600 text-xs">2</button>
+          <button data-page-btn class="size-7 flex items-center justify-center rounded border border-slate-200 bg-white dark:bg-slate-800 text-slate-600 text-xs">3</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 5: WARNING DETAIL ==================== -->
+<section id="page-warning-detail" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-2">
+      <a data-breadcrumb="/warning-center" class="hover:text-primary cursor-pointer">预警中心</a>
+      <span class="material-symbols-outlined text-xs">chevron_right</span>
+      <span class="text-slate-900 dark:text-slate-100 font-medium">WRN-2026-0042</span>
+    </div>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-black tracking-tight">流感样病例聚集预警</h1>
+        <span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-3 py-1 rounded-full text-xs font-bold">严重</span>
+      </div>
+      <div class="flex gap-3">
+        <button data-action="dispatch" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">send</span>派发任务</button>
+        <button data-action="export" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">download</span>导出</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Trigger Analysis -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">analytics</span>触发阈值分析</h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div class="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg"><p class="text-xs text-slate-500">基线值</p><p class="text-xl font-bold">3.5%</p></div>
+            <div class="text-center p-4 bg-rose-50 dark:bg-rose-900/10 rounded-lg"><p class="text-xs text-slate-500">实测值</p><p class="text-xl font-bold text-rose-600">8.2%</p></div>
+            <div class="text-center p-4 bg-slate-50 dark:bg-slate-800 rounded-lg"><p class="text-xs text-slate-500">持续时间</p><p class="text-xl font-bold">72h</p></div>
+          </div>
+        </div>
+        <!-- 24h Trend -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4">24小时指标趋势</h3>
+          <div class="h-40">
+            <svg width="100%" height="100%" viewBox="0 0 480 120" preserveAspectRatio="none">
+              <rect x="15" y="80" width="25" height="40" rx="3" fill="#1a355b" opacity="0.3"/><rect x="55" y="70" width="25" height="50" rx="3" fill="#1a355b" opacity="0.4"/>
+              <rect x="95" y="60" width="25" height="60" rx="3" fill="#1a355b" opacity="0.5"/><rect x="135" y="50" width="25" height="70" rx="3" fill="#1a355b" opacity="0.6"/>
+              <rect x="175" y="40" width="25" height="80" rx="3" fill="#1a355b" opacity="0.7"/><rect x="215" y="30" width="25" height="90" rx="3" fill="#1a355b" opacity="0.8"/>
+              <rect x="255" y="20" width="25" height="100" rx="3" fill="#ef4444" opacity="0.9"/><rect x="295" y="15" width="25" height="105" rx="3" fill="#ef4444"/>
+              <rect x="335" y="10" width="25" height="110" rx="3" fill="#ef4444"/><rect x="375" y="5" width="25" height="115" rx="3" fill="#ef4444"/>
+              <rect x="415" y="8" width="25" height="112" rx="3" fill="#ef4444"/><rect x="455" y="12" width="25" height="108" rx="3" fill="#ef4444"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Recommended Actions -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4 flex items-center gap-2"><span class="material-symbols-outlined text-primary">tips_and_updates</span>建议响应措施</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-4"><p class="font-bold text-sm mb-1">启动流调排查</p><p class="text-xs text-slate-500">对网格04内所有发热病例进行流行病学调查</p></div>
+            <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-4"><p class="font-bold text-sm mb-1">增设哨点监测</p><p class="text-xs text-slate-500">在筼筜街道社区卫生中心增设ILI监测点</p></div>
+            <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-4"><p class="font-bold text-sm mb-1">医疗资源调配</p><p class="text-xs text-slate-500">协调抗病毒药物和检测试剂储备</p></div>
+            <div class="border border-slate-200 dark:border-slate-700 rounded-lg p-4"><p class="font-bold text-sm mb-1">社区健康宣教</p><p class="text-xs text-slate-500">发布居民防护提示及就诊指引</p></div>
+          </div>
+        </div>
+      </div>
+      <!-- Right sidebar -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4 text-sm">技术元数据</h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between"><span class="text-slate-500">预警编号</span><span class="font-mono font-bold">WRN-2026-0042</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">触发模型</span><span class="font-bold">SIR v4.2.1</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">置信度</span><span class="font-bold text-rose-600">96%</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">影响人口</span><span class="font-bold">~12,400</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">创建时间</span><span class="font-bold">14:22:10</span></div>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4 text-sm">事件时间线</h3>
+          <div class="space-y-4">
+            <div class="flex gap-3"><div class="flex flex-col items-center"><div class="w-2 h-2 rounded-full bg-rose-500 mt-1.5"></div><div class="w-0.5 flex-1 bg-slate-200 dark:bg-slate-700"></div></div><div><p class="text-xs font-bold">14:22 — 预警触发</p><p class="text-xs text-slate-500">模型检测到异常聚集</p></div></div>
+            <div class="flex gap-3"><div class="flex flex-col items-center"><div class="w-2 h-2 rounded-full bg-amber-500 mt-1.5"></div><div class="w-0.5 flex-1 bg-slate-200 dark:bg-slate-700"></div></div><div><p class="text-xs font-bold">13:45 — 数据更新</p><p class="text-xs text-slate-500">接收哨点医院最新报告数据</p></div></div>
+            <div class="flex gap-3"><div class="flex flex-col items-center"><div class="w-2 h-2 rounded-full bg-blue-500 mt-1.5"></div></div><div><p class="text-xs font-bold">12:00 — 阈值接近</p><p class="text-xs text-slate-500">ILI%达到6.8%，接近预警阈值</p></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 6: TREND PREDICTION ==================== -->
+<section id="page-trend-prediction" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div>
+      <h1 class="text-2xl font-black tracking-tight">趋势预测分析</h1>
+      <p class="text-slate-500 text-sm">基于AI模型的传染病发病趋势预测</p>
+    </div>
+    <!-- Filter bar -->
+    <div class="flex flex-wrap gap-3">
+      <select class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800"><option>思明区全区</option><option>筼筜街道</option><option>中华街道</option><option>鹭江街道</option></select>
+      <select class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800"><option>全部疾病</option><option>流感样病例</option><option>登革热</option><option>诺如病毒</option></select>
+      <input type="date" class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800" value="2026-03-03"/>
+    </div>
+    <!-- Chart -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold">发病率预测曲线</h3>
+        <div class="flex gap-4 text-xs"><span class="flex items-center gap-1"><span class="size-2 bg-primary rounded-full"></span>历史数据</span><span class="flex items-center gap-1"><span class="size-2 bg-rose-500 rounded-full"></span>预测趋势</span><span class="flex items-center gap-1"><span class="size-2 bg-blue-200 rounded-full"></span>置信区间</span></div>
+      </div>
+      <div class="h-56">
+        <svg width="100%" height="100%" viewBox="0 0 600 200" preserveAspectRatio="none">
+          <path d="M0 150C50 145 100 130 150 120C200 110 250 100 300 95" stroke="#1a355b" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M300 95C350 85 400 65 450 50C500 35 550 25 600 20" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="6" fill="none" stroke-linecap="round"/>
+          <path d="M300 75C350 60 400 40 450 25C500 10 550 5 600 0V40C550 45 500 55 450 70C400 85 350 105 300 115Z" fill="#bfdbfe" opacity="0.3"/>
+          <line x1="300" y1="0" x2="300" y2="200" stroke="#94a3b8" stroke-dasharray="4"/>
+          <text x="305" y="15" font-size="10" fill="#94a3b8">今日</text>
+        </svg>
+      </div>
+      <div class="flex justify-between text-xs text-slate-400 mt-2"><span>2月17日</span><span>2月24日</span><span>3月3日</span><span>3月10日</span><span>3月17日</span></div>
+    </div>
+    <!-- Stats cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500 uppercase font-bold">预测7天峰值</p>
+        <p class="text-2xl font-bold mt-2">12.4/10万</p>
+        <p class="text-xs text-rose-500 font-bold mt-1">较当前 +34%</p>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500 uppercase font-bold">模型可靠度</p>
+        <p class="text-2xl font-bold mt-2">94.2%</p>
+        <p class="text-xs text-emerald-500 font-bold mt-1">高置信度</p>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <p class="text-xs text-slate-500 uppercase font-bold">增长率</p>
+        <p class="text-2xl font-bold mt-2">+2.8%/天</p>
+        <p class="text-xs text-amber-500 font-bold mt-1">加速上升期</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 7: VECTOR RISK ==================== -->
+<section id="page-vector-risk" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div><h1 class="text-2xl font-black tracking-tight">媒介传播风险评估</h1><p class="text-slate-500 text-sm">虫媒传染病风险分析与社区排名</p></div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Risk Map -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <h3 class="font-bold mb-4">社区风险热力分布</h3>
+        <div class="h-64 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center relative">
+          <span class="material-symbols-outlined text-5xl text-slate-300">map</span>
+          <div class="absolute inset-4">
+            <svg width="100%" height="100%" viewBox="0 0 400 250" class="opacity-40">
+              <circle cx="120" cy="80" r="50" fill="#ef4444" opacity="0.5"/><circle cx="280" cy="100" r="40" fill="#f59e0b" opacity="0.5"/>
+              <circle cx="200" cy="180" r="35" fill="#eab308" opacity="0.4"/><circle cx="330" cy="200" r="25" fill="#3b82f6" opacity="0.3"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <!-- Aggregate Risk -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <h3 class="font-bold mb-4">综合风险指数</h3>
+        <div class="space-y-4">
+          <div><div class="flex justify-between text-sm mb-1"><span>筼筜街道</span><span class="font-bold text-rose-600">9.2</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-rose-500 rounded-full" style="width:92%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span>中华街道</span><span class="font-bold text-amber-600">7.8</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-amber-500 rounded-full" style="width:78%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span>鹭江街道</span><span class="font-bold text-amber-600">6.5</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-amber-400 rounded-full" style="width:65%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span>厦港街道</span><span class="font-bold text-amber-600">6.1</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-amber-400 rounded-full" style="width:61%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span>开元街道</span><span class="font-bold text-yellow-600">5.2</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-yellow-400 rounded-full" style="width:52%"></div></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Factor Contribution -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+      <h3 class="font-bold mb-4">风险因子贡献度</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div><div class="flex justify-between text-sm mb-2"><span>气候脆弱性</span><span class="font-bold">78%</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-primary rounded-full" style="width:78%"></div></div></div>
+        <div><div class="flex justify-between text-sm mb-2"><span>人口密度</span><span class="font-bold">65%</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-primary rounded-full" style="width:65%"></div></div></div>
+        <div><div class="flex justify-between text-sm mb-2"><span>环境卫生</span><span class="font-bold">52%</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-primary rounded-full" style="width:52%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 8: RESPIRATORY SIM ==================== -->
+<section id="page-respiratory-sim" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div><h1 class="text-2xl font-black tracking-tight">呼吸道疾病模拟仿真</h1><p class="text-slate-500 text-sm">EPISIM 政策干预模拟 — 评估不同措施对疫情的影响</p></div>
+    <!-- Intervention scenarios -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+      <h3 class="font-bold mb-4">干预情景选择</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <label class="border border-slate-200 dark:border-slate-700 rounded-lg p-4 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+          <input type="radio" name="scenario" class="text-primary focus:ring-primary" value="none"/><span class="ml-2 text-sm font-bold">无干预</span><p class="text-xs text-slate-500 mt-1 ml-6">自然传播基线模拟</p>
+        </label>
+        <label class="border border-slate-200 dark:border-slate-700 rounded-lg p-4 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+          <input type="radio" name="scenario" class="text-primary focus:ring-primary" value="mild" checked/><span class="ml-2 text-sm font-bold">温和干预</span><p class="text-xs text-slate-500 mt-1 ml-6">健康宣教 + 自愿隔离</p>
+        </label>
+        <label class="border border-slate-200 dark:border-slate-700 rounded-lg p-4 cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+          <input type="radio" name="scenario" class="text-primary focus:ring-primary" value="strict"/><span class="ml-2 text-sm font-bold">严格干预</span><p class="text-xs text-slate-500 mt-1 ml-6">强制隔离 + 区域管控</p>
+        </label>
+      </div>
+    </div>
+    <!-- Parameters -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <h3 class="font-bold mb-4">模型参数</h3>
+        <div class="space-y-4">
+          <div><label class="flex justify-between text-sm mb-1"><span>传染期（天）</span><span class="font-bold">7</span></label><input type="range" min="3" max="14" value="7" class="w-full accent-primary"/></div>
+          <div><label class="flex justify-between text-sm mb-1"><span>疫苗接种率</span><span class="font-bold">45%</span></label><input type="range" min="0" max="100" value="45" class="w-full accent-primary"/></div>
+          <div><label class="flex justify-between text-sm mb-1"><span>基本再生数 R₀</span><span class="font-bold">2.5</span></label><input type="range" min="10" max="50" value="25" class="w-full accent-primary"/></div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <h3 class="font-bold mb-4">医疗资源负荷预测</h3>
+        <div class="space-y-4">
+          <div><div class="flex justify-between text-sm mb-1"><span>普通床位占用</span><span class="font-bold text-amber-600">68%</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-amber-500 rounded-full" style="width:68%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span>ICU占用</span><span class="font-bold text-rose-600">82%</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-rose-500 rounded-full" style="width:82%"></div></div></div>
+          <div><div class="flex justify-between text-sm mb-1"><span>呼吸机使用</span><span class="font-bold text-yellow-600">45%</span></div><div class="h-2 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="h-full bg-yellow-500 rounded-full" style="width:45%"></div></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- Projection chart -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+      <h3 class="font-bold mb-4">发病率预测对比</h3>
+      <div class="h-48">
+        <svg width="100%" height="100%" viewBox="0 0 600 180" preserveAspectRatio="none">
+          <path d="M0 160C60 155 120 140 180 120C240 95 300 60 360 30C420 10 480 5 540 3C570 2 600 2 600 2" stroke="#ef4444" stroke-width="2" fill="none" stroke-dasharray="6" opacity="0.7"/>
+          <path d="M0 160C60 155 120 145 180 135C240 120 300 100 360 80C420 65 480 55 540 50C570 48 600 47 600 47" stroke="#f59e0b" stroke-width="2" fill="none"/>
+          <path d="M0 160C60 158 120 155 180 150C240 145 300 140 360 135C420 130 480 125 540 122C570 121 600 120 600 120" stroke="#22c55e" stroke-width="2" fill="none"/>
+        </svg>
+      </div>
+      <div class="flex gap-6 text-xs mt-3"><span class="flex items-center gap-1"><span class="size-2 bg-rose-500 rounded-full"></span>无干预</span><span class="flex items-center gap-1"><span class="size-2 bg-amber-500 rounded-full"></span>温和干预</span><span class="flex items-center gap-1"><span class="size-2 bg-emerald-500 rounded-full"></span>严格干预</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 9: TASK CENTER ==================== -->
+<section id="page-task-center" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div><h1 class="text-2xl font-black tracking-tight">任务中心</h1><p class="text-slate-500 text-sm">应急响应任务调度与管理</p></div>
+      <div class="flex gap-3">
+        <button data-action="batch-dispatch" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">send</span>批量派发</button>
+        <button data-action="export" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">download</span>导出</button>
+      </div>
+    </div>
+    <!-- Filter -->
+    <div class="flex flex-wrap gap-3">
+      <select class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800"><option>全部区域</option><option>筼筜街道</option><option>中华街道</option><option>鹭江街道</option></select>
+      <select class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800"><option>全部疾病</option><option>流感</option><option>登革热</option><option>诺如病毒</option></select>
+      <select class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800"><option>全部状态</option><option>待派发</option><option>已派发</option><option>现场核查</option></select>
+    </div>
+    <!-- Task table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 uppercase"><tr><th class="px-5 py-3">任务编号</th><th class="px-5 py-3">区域</th><th class="px-5 py-3">疾病类型</th><th class="px-5 py-3">SLA倒计时</th><th class="px-5 py-3">状态</th><th class="px-5 py-3">上报时间</th></tr></thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr data-row-link="/task-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">TSK-2026-0089</td><td class="px-5 py-3">筼筜街道，网格#04</td>
+              <td class="px-5 py-3"><span class="text-rose-600 font-bold">流感预警</span></td>
+              <td class="px-5 py-3 font-mono text-rose-600 font-bold">00:42:15</td>
+              <td class="px-5 py-3"><span class="flex items-center gap-1 text-amber-600"><span class="material-symbols-outlined text-sm">pending_actions</span>待派发</span></td>
+              <td class="px-5 py-3 text-slate-500">12分钟前</td>
+            </tr>
+            <tr data-row-link="/task-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">TSK-2026-0091</td><td class="px-5 py-3">中华街道，网格#02</td>
+              <td class="px-5 py-3"><span class="text-blue-600 font-bold">登革热</span></td>
+              <td class="px-5 py-3 font-mono">04:15:00</td>
+              <td class="px-5 py-3"><span class="flex items-center gap-1 text-blue-600"><span class="material-symbols-outlined text-sm">local_shipping</span>已派发</span></td>
+              <td class="px-5 py-3 text-slate-500">2小时前</td>
+            </tr>
+            <tr data-row-link="/task-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">TSK-2026-0095</td><td class="px-5 py-3">鹭江街道，网格#01</td>
+              <td class="px-5 py-3"><span class="text-orange-600 font-bold">诺如病毒</span></td>
+              <td class="px-5 py-3 font-mono text-amber-600">01:05:22</td>
+              <td class="px-5 py-3"><span class="flex items-center gap-1 text-emerald-600"><span class="material-symbols-outlined text-sm">check_circle</span>现场核查</span></td>
+              <td class="px-5 py-3 text-slate-500">4小时前</td>
+            </tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">TSK-2026-0097</td><td class="px-5 py-3">梧村街道，网格#03</td>
+              <td class="px-5 py-3"><span class="text-blue-600 font-bold">水痘</span></td>
+              <td class="px-5 py-3 font-mono">06:30:00</td>
+              <td class="px-5 py-3"><span class="flex items-center gap-1 text-blue-600"><span class="material-symbols-outlined text-sm">local_shipping</span>已派发</span></td>
+              <td class="px-5 py-3 text-slate-500">5小时前</td>
+            </tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+              <td class="px-5 py-3 font-mono text-xs">TSK-2026-0098</td><td class="px-5 py-3">嘉莲街道，网格#02</td>
+              <td class="px-5 py-3"><span class="text-orange-600 font-bold">手足口病</span></td>
+              <td class="px-5 py-3 font-mono text-amber-600">02:10:15</td>
+              <td class="px-5 py-3"><span class="flex items-center gap-1 text-amber-600"><span class="material-symbols-outlined text-sm">pending_actions</span>待派发</span></td>
+              <td class="px-5 py-3 text-slate-500">6小时前</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 10: TASK DETAIL ==================== -->
+<section id="page-task-detail" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-2">
+      <a data-breadcrumb="/task-center" class="hover:text-primary cursor-pointer">任务中心</a>
+      <span class="material-symbols-outlined text-xs">chevron_right</span>
+      <span class="text-slate-900 dark:text-slate-100 font-medium">TSK-2026-0089</span>
+    </div>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-black tracking-tight">流感疫情核查任务</h1>
+        <span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-xs font-bold">高优先级</span>
+        <span class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded text-xs font-bold">待派发</span>
+      </div>
+    </div>
+    <!-- Phase progress -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+      <h3 class="font-bold mb-4">任务阶段进度</h3>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 text-center"><div class="h-2 bg-primary rounded-full"></div><p class="text-xs mt-1 font-bold text-primary">发现</p></div>
+        <div class="flex-1 text-center"><div class="h-2 bg-primary rounded-full"></div><p class="text-xs mt-1 font-bold text-primary">核查</p></div>
+        <div class="flex-1 text-center"><div class="h-2 bg-primary/30 rounded-full"></div><p class="text-xs mt-1 text-slate-500">响应</p></div>
+        <div class="flex-1 text-center"><div class="h-2 bg-slate-200 dark:bg-slate-700 rounded-full"></div><p class="text-xs mt-1 text-slate-400">结案</p></div>
+      </div>
+      <div class="mt-3 text-right"><span class="text-sm font-bold text-primary">完成度: 65%</span></div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Action log -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4">不可篡改操作日志</h3>
+          <div class="space-y-4">
+            <div class="flex gap-3 border-l-2 border-primary pl-4"><div><p class="text-xs font-bold">2026-03-03 14:22 — 预警触发</p><p class="text-xs text-slate-500">系统自动创建任务，关联预警 WRN-2026-0042</p><p class="text-[10px] text-slate-400 font-mono mt-1">操作人: 系统自动</p></div></div>
+            <div class="flex gap-3 border-l-2 border-amber-500 pl-4"><div><p class="text-xs font-bold">2026-03-03 14:25 — 现场照片上传</p><p class="text-xs text-slate-500">上传网格04社区卫生服务中心发热门诊照片2张</p><p class="text-[10px] text-slate-400 font-mono mt-1">操作人: 李雪芬 (调度员)</p></div></div>
+            <div class="flex gap-3 border-l-2 border-emerald-500 pl-4"><div><p class="text-xs font-bold">2026-03-03 14:30 — 流调报告提交</p><p class="text-xs text-slate-500">初步调查：网格04范围内3天内新增ILI 28例</p><p class="text-[10px] text-slate-400 font-mono mt-1">操作人: 王建华 (分析师)</p></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-3 text-sm">评估指标</h3>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between"><span class="text-slate-500">SLA剩余</span><span class="font-mono font-bold text-rose-600">00:42:15</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">影响范围</span><span class="font-bold">~3,200人</span></div>
+            <div class="flex justify-between"><span class="text-slate-500">涉及机构</span><span class="font-bold">4家</span></div>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-3 text-sm">参与人员</h3>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2"><div class="size-6 bg-primary/20 rounded-full flex items-center justify-center text-[10px] font-bold text-primary">CZ</div><span class="text-xs">陈志明 (管理员)</span></div>
+            <div class="flex items-center gap-2"><div class="size-6 bg-blue-100 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-600">LX</div><span class="text-xs">李雪芬 (调度员)</span></div>
+            <div class="flex items-center gap-2"><div class="size-6 bg-emerald-100 rounded-full flex items-center justify-center text-[10px] font-bold text-emerald-600">WJ</div><span class="text-xs">王建华 (分析师)</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 11: TASK TEMPLATES ==================== -->
+<section id="page-task-templates" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div><h1 class="text-2xl font-black tracking-tight">任务模板管理</h1><p class="text-slate-500 text-sm">配置标准化响应流程与模板</p></div>
+      <button data-action="create-template" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">add</span>新建模板</button>
+    </div>
+    <!-- Workflow builder preview -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+      <h3 class="font-bold mb-4">响应流程构建器</h3>
+      <div class="flex items-center gap-4 overflow-x-auto pb-4">
+        <div class="shrink-0 border-2 border-rose-300 bg-rose-50 dark:bg-rose-900/10 rounded-lg p-4 w-40 text-center"><span class="material-symbols-outlined text-rose-500 mb-1">crisis_alert</span><p class="text-xs font-bold">触发条件</p><p class="text-[10px] text-slate-500">预警阈值达标</p></div>
+        <span class="material-symbols-outlined text-slate-300 shrink-0">arrow_forward</span>
+        <div class="shrink-0 border-2 border-blue-300 bg-blue-50 dark:bg-blue-900/10 rounded-lg p-4 w-40 text-center"><span class="material-symbols-outlined text-blue-500 mb-1">fact_check</span><p class="text-xs font-bold">数据验证</p><p class="text-[10px] text-slate-500">核实数据完整性</p></div>
+        <span class="material-symbols-outlined text-slate-300 shrink-0">arrow_forward</span>
+        <div class="shrink-0 border-2 border-amber-300 bg-amber-50 dark:bg-amber-900/10 rounded-lg p-4 w-40 text-center"><span class="material-symbols-outlined text-amber-500 mb-1">escalator_warning</span><p class="text-xs font-bold">响应升级</p><p class="text-[10px] text-slate-500">通知相关部门</p></div>
+        <span class="material-symbols-outlined text-slate-300 shrink-0">arrow_forward</span>
+        <div class="shrink-0 border-2 border-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 rounded-lg p-4 w-40 text-center"><span class="material-symbols-outlined text-emerald-500 mb-1">check_circle</span><p class="text-xs font-bold">结案确认</p><p class="text-[10px] text-slate-500">总结归档</p></div>
+      </div>
+    </div>
+    <!-- Template table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 uppercase"><tr><th class="px-5 py-3">模板名称</th><th class="px-5 py-3">类型</th><th class="px-5 py-3">优先级</th><th class="px-5 py-3">步骤</th><th class="px-5 py-3">最近使用</th><th class="px-5 py-3">状态</th></tr></thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="px-5 py-3 font-semibold">流感样病例聚集应急响应</td><td class="px-5 py-3">应急响应</td><td class="px-5 py-3"><span class="text-rose-600 font-bold">高</span></td><td class="px-5 py-3">8</td><td class="px-5 py-3 text-slate-500">2026-02-28</td><td class="px-5 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold">启用</span></td></tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="px-5 py-3 font-semibold">登革热媒介消杀任务</td><td class="px-5 py-3">预防控制</td><td class="px-5 py-3"><span class="text-rose-600 font-bold">高</span></td><td class="px-5 py-3">12</td><td class="px-5 py-3 text-slate-500">2026-02-25</td><td class="px-5 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold">启用</span></td></tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="px-5 py-3 font-semibold">诺如病毒校园消毒流程</td><td class="px-5 py-3">消毒处置</td><td class="px-5 py-3"><span class="text-amber-600 font-bold">中</span></td><td class="px-5 py-3">6</td><td class="px-5 py-3 text-slate-500">2026-02-20</td><td class="px-5 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold">启用</span></td></tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="px-5 py-3 font-semibold">手足口病社区宣教</td><td class="px-5 py-3">健康教育</td><td class="px-5 py-3"><span class="text-blue-600 font-bold">低</span></td><td class="px-5 py-3">4</td><td class="px-5 py-3 text-slate-500">2026-02-15</td><td class="px-5 py-3"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">停用</span></td></tr>
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="px-5 py-3 font-semibold">不明原因肺炎调查模板</td><td class="px-5 py-3">流调排查</td><td class="px-5 py-3"><span class="text-rose-600 font-bold">高</span></td><td class="px-5 py-3">15</td><td class="px-5 py-3 text-slate-500">2026-03-01</td><td class="px-5 py-3"><span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-bold">启用</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 12: REPORT GENERATE ==================== -->
+<section id="page-report-generate" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div><h1 class="text-2xl font-black tracking-tight">智能报告生成</h1><p class="text-slate-500 text-sm">AI辅助生成传染病监测分析报告</p></div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left: Template + Config -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4">选择报告模板</h3>
+          <div class="space-y-2">
+            <label class="flex items-center gap-3 border border-slate-200 dark:border-slate-700 rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <input type="radio" name="template" checked class="text-primary"/><div><p class="text-sm font-bold">综合月报</p><p class="text-xs text-slate-500">全区传染病监测综合分析</p></div>
+            </label>
+            <label class="flex items-center gap-3 border border-slate-200 dark:border-slate-700 rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <input type="radio" name="template" class="text-primary"/><div><p class="text-sm font-bold">应急专报</p><p class="text-xs text-slate-500">突发疫情专题报告</p></div>
+            </label>
+            <label class="flex items-center gap-3 border border-slate-200 dark:border-slate-700 rounded-lg p-3 cursor-pointer has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+              <input type="radio" name="template" class="text-primary"/><div><p class="text-sm font-bold">社区传播</p><p class="text-xs text-slate-500">社区级传播链分析</p></div>
+            </label>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+          <h3 class="font-bold mb-4">数据引用</h3>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between"><span class="text-sm">预警数据</span><div class="flex items-center gap-2"><span class="size-2 bg-emerald-500 rounded-full"></span><span class="text-xs text-emerald-600">已连接</span></div></div>
+            <div class="flex items-center justify-between"><span class="text-sm">监测数据</span><div class="flex items-center gap-2"><span class="size-2 bg-emerald-500 rounded-full"></span><span class="text-xs text-emerald-600">已连接</span></div></div>
+            <div class="flex items-center justify-between"><span class="text-sm">模型预测</span><div class="flex items-center gap-2"><span class="size-2 bg-amber-500 rounded-full"></span><span class="text-xs text-amber-600">部分可用</span></div></div>
+          </div>
+        </div>
+      </div>
+      <!-- Right: Preview -->
+      <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <h3 class="font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">auto_awesome</span>AI生成预览</h3>
+          <div class="flex gap-2">
+            <button data-action="export" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">download</span>导出</button>
+            <button data-nav-link="/report-edit" class="border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 cursor-pointer"><span class="material-symbols-outlined text-sm">edit</span>编辑</button>
+          </div>
+        </div>
+        <div class="p-6 space-y-4 text-sm">
+          <h2 class="text-lg font-bold text-center text-primary">厦门市思明区传染病监测月报</h2>
+          <p class="text-center text-slate-500 text-xs">报告期：2026年2月1日 - 2026年2月28日</p>
+          <div class="border-t border-slate-200 dark:border-slate-700 pt-4">
+            <h4 class="font-bold text-primary mb-2">一、总体概况</h4>
+            <p class="text-slate-600 dark:text-slate-400 leading-relaxed">2026年2月，思明区共报告法定传染病12种1,284例，较上月下降5.2%，较去年同期上升3.8%。其中甲类传染病0例，乙类传染病428例，丙类传染病856例。无死亡病例报告。</p>
+          </div>
+          <div>
+            <h4 class="font-bold text-primary mb-2">二、重点疾病监测</h4>
+            <p class="text-slate-600 dark:text-slate-400 leading-relaxed">流感样病例（ILI）: 门诊ILI%为4.2%，高于基线水平（3.5%），主要集中在筼筜街道和中华街道。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 13: REPORT EDIT ==================== -->
+<section id="page-report-edit" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex items-center gap-2 text-sm text-slate-500 mb-2">
+      <a data-breadcrumb="/report-generate" class="hover:text-primary cursor-pointer">智能报告</a>
+      <span class="material-symbols-outlined text-xs">chevron_right</span>
+      <span class="text-slate-900 dark:text-slate-100 font-medium">编辑与发布</span>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <!-- Editor -->
+      <div class="lg:col-span-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+        <div class="border-b border-slate-200 dark:border-slate-800 p-3 flex flex-wrap gap-2">
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">format_bold</span></button>
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">format_italic</span></button>
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">format_underlined</span></button>
+          <span class="w-px bg-slate-200 dark:bg-slate-700 mx-1"></span>
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">format_list_bulleted</span></button>
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">format_list_numbered</span></button>
+          <span class="w-px bg-slate-200 dark:bg-slate-700 mx-1"></span>
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">insert_chart</span></button>
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">map</span></button>
+          <button class="p-1.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-sm">image</span></button>
+        </div>
+        <div class="p-6 min-h-[400px]" contenteditable="true">
+          <h2 class="text-lg font-bold text-primary mb-4">厦门市思明区传染病监测月报</h2>
+          <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">报告期：2026年2月1日 - 2026年2月28日</p>
+          <h3 class="font-bold text-primary mb-2">一、总体概况</h3>
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mb-4">2026年2月，思明区共报告法定传染病12种1,284例，较上月下降5.2%，较去年同期上升3.8%。其中甲类传染病0例，乙类传染病428例，丙类传染病856例。无死亡病例报告。</p>
+          <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 mb-4 text-center text-sm text-slate-500">[图表模块 — 发病率趋势图]</div>
+          <h3 class="font-bold text-primary mb-2">二、重点疾病监测</h3>
+          <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300">流感样病例（ILI）: 门诊ILI%为4.2%，高于基线水平（3.5%），主要集中在筼筜街道和中华街道。</p>
+        </div>
+      </div>
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+          <h3 class="font-bold text-sm mb-3">发布流程</h3>
+          <div class="space-y-3">
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-emerald-500 text-sm">check_circle</span><span class="text-xs font-bold text-emerald-600">草稿编辑</span></div>
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-amber-500 text-sm">pending</span><span class="text-xs font-bold text-amber-600">部门审核中</span></div>
+            <div class="flex items-center gap-2"><span class="material-symbols-outlined text-slate-300 text-sm">radio_button_unchecked</span><span class="text-xs text-slate-400">终审批准</span></div>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-sm">
+          <h3 class="font-bold text-sm mb-3">数据组件</h3>
+          <div class="space-y-2">
+            <button class="w-full text-left px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"><span class="material-symbols-outlined text-sm text-primary">map</span>网格地图</button>
+            <button class="w-full text-left px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"><span class="material-symbols-outlined text-sm text-primary">table_chart</span>感染表格</button>
+            <button class="w-full text-left px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"><span class="material-symbols-outlined text-sm text-primary">show_chart</span>趋势折线</button>
+          </div>
+        </div>
+        <button data-action="export" class="w-full bg-primary text-white py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2"><span class="material-symbols-outlined text-sm">download</span>导出报告</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 14: DATA SOURCES ==================== -->
+<section id="page-data-sources" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div><h1 class="text-2xl font-black tracking-tight">数据源管理</h1><p class="text-slate-500 text-sm">集中管理数据接入管道与同步状态</p></div>
+      <div class="flex gap-3">
+        <button data-action="add-source" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">add</span>添加数据源</button>
+        <button data-action="export" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><span class="material-symbols-outlined text-sm">download</span>导出配置</button>
+      </div>
+    </div>
+    <!-- Status Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600"><span class="material-symbols-outlined">health_and_safety</span></div>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-green-500 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">运行中</span>
+        </div>
+        <h3 class="font-bold">传染病报告系统</h3><p class="text-xs text-slate-500 mb-4">HL7/API 接口</p>
+        <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
+          <span class="text-xs text-slate-500">延迟: <span class="font-bold text-slate-900 dark:text-slate-100">12ms</span></span>
+          <span class="text-xs text-slate-500">可用率: <span class="font-bold text-slate-900 dark:text-slate-100">99.9%</span></span>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm border-l-4 border-l-primary">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-primary"><span class="material-symbols-outlined">local_hospital</span></div>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-green-500 bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded">已同步</span>
+        </div>
+        <h3 class="font-bold">医院HIS系统</h3><p class="text-xs text-slate-500 mb-4">FHIR 互操作接口</p>
+        <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
+          <span class="text-xs text-slate-500">节点: <span class="font-bold text-slate-900 dark:text-slate-100">8/8</span></span>
+          <span class="text-xs text-slate-500">最后: <span class="font-bold text-slate-900 dark:text-slate-100">2分钟前</span></span>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600"><span class="material-symbols-outlined">eco</span></div>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-orange-500 bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded">告警</span>
+        </div>
+        <h3 class="font-bold">环境监测物联网</h3><p class="text-xs text-slate-500 mb-4">MQTT 网关</p>
+        <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
+          <span class="text-xs text-slate-500">丢包: <span class="font-bold text-orange-600">1.2%</span></span>
+          <span class="text-xs text-slate-500">状态: <span class="font-bold">限流中</span></span>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div class="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-purple-600"><span class="material-symbols-outlined">groups</span></div>
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">待机</span>
+        </div>
+        <h3 class="font-bold">人口统计API</h3><p class="text-xs text-slate-500 mb-4">批量/SFTP</p>
+        <div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
+          <span class="text-xs text-slate-500">队列: <span class="font-bold text-slate-900 dark:text-slate-100">0</span></span>
+          <span class="text-xs text-slate-500">下次: <span class="font-bold">每日00:00</span></span>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Field Mapping -->
+      <div class="lg:col-span-2 space-y-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+          <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 class="font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">schema</span>全局字段映射</h3>
+            <button class="text-primary text-xs font-bold hover:underline">编辑映射</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-medium text-xs"><tr><th class="px-5 py-3">源字段</th><th class="px-5 py-3">统一模式</th><th class="px-5 py-3">数据类型</th><th class="px-5 py-3">验证</th><th class="px-5 py-3">状态</th></tr></thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tr><td class="px-5 py-3 font-mono text-xs">patient_id</td><td class="px-5 py-3 font-bold text-primary">SUBJECT_ID</td><td class="px-5 py-3 text-slate-500">UUID</td><td class="px-5 py-3"><span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">正则</span></td><td class="px-5 py-3 text-green-500"><span class="material-symbols-outlined text-base">check_circle</span></td></tr>
+                <tr><td class="px-5 py-3 font-mono text-xs">observation_val</td><td class="px-5 py-3 font-bold text-primary">VALUE_NUM</td><td class="px-5 py-3 text-slate-500">Float64</td><td class="px-5 py-3"><span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">范围</span></td><td class="px-5 py-3 text-green-500"><span class="material-symbols-outlined text-base">check_circle</span></td></tr>
+                <tr><td class="px-5 py-3 font-mono text-xs">timestamp_iso</td><td class="px-5 py-3 font-bold text-primary">EVENT_TIME</td><td class="px-5 py-3 text-slate-500">DateTime</td><td class="px-5 py-3"><span class="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded font-bold">格式</span></td><td class="px-5 py-3 text-green-500"><span class="material-symbols-outlined text-base">check_circle</span></td></tr>
+                <tr><td class="px-5 py-3 font-mono text-xs">facility_code</td><td class="px-5 py-3 font-bold text-primary">ORIGIN_ID</td><td class="px-5 py-3 text-slate-500">String</td><td class="px-5 py-3"><span class="bg-orange-50 text-orange-600 text-[10px] px-2 py-0.5 rounded font-bold">查找</span></td><td class="px-5 py-3 text-orange-500"><span class="material-symbols-outlined text-base">warning</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Ingestion stream -->
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+          <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <h3 class="font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">receipt_long</span>实时数据摄入流</h3>
+            <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></span><span class="text-xs text-slate-500">实时更新</span></div>
+          </div>
+          <div class="bg-slate-950 p-4 font-mono text-xs text-green-400 space-y-1.5 min-h-[160px]">
+            <p><span class="text-slate-500">[2026-03-03 14:32:01]</span> <span class="text-blue-400">INFO:</span> 已连接CDC_STREAM_EP01，初始化握手...</p>
+            <p><span class="text-slate-500">[2026-03-03 14:32:02]</span> <span class="text-green-400">成功:</span> 已摄入批次 #8921 — 452条记录已处理</p>
+            <p><span class="text-slate-500">[2026-03-03 14:32:05]</span> <span class="text-blue-400">INFO:</span> 正在轮询医院HIS主系统获取增量更新</p>
+            <p><span class="text-slate-500">[2026-03-03 14:32:08]</span> <span class="text-orange-400">警告:</span> 检测到环境传感网格迟到数据，正在调整水位线</p>
+            <p><span class="text-slate-500">[2026-03-03 14:32:10]</span> <span class="text-green-400">成功:</span> 转换层已映射12条新人口统计记录</p>
+            <div class="border-l-2 border-green-500 pl-2 animate-pulse">_</div>
+          </div>
+        </div>
+      </div>
+      <!-- Right panel -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+          <div class="p-5 bg-red-50 dark:bg-red-900/10 border-b border-red-100 dark:border-red-900/20">
+            <h3 class="font-bold text-red-700 dark:text-red-400 flex items-center gap-2"><span class="material-symbols-outlined">report</span>严重告警 (2)</h3>
+          </div>
+          <div class="divide-y divide-slate-100 dark:divide-slate-800">
+            <div class="p-4"><div class="flex items-start gap-3"><span class="material-symbols-outlined text-red-500 mt-1">error</span><div><p class="text-sm font-bold">TLS握手失败</p><p class="text-xs text-slate-500 mt-1">来源: <span class="font-bold">环境监测API_V2</span></p><p class="text-xs text-slate-500">代理节点-4证书已过期</p></div></div></div>
+            <div class="p-4"><div class="flex items-start gap-3"><span class="material-symbols-outlined text-orange-500 mt-1">database_off</span><div><p class="text-sm font-bold">模式不匹配</p><p class="text-xs text-slate-500 mt-1">来源: <span class="font-bold">医院记录H1</span></p><p class="text-xs text-slate-500">字段 'zip_code' 接收Int，预期String</p></div></div></div>
+          </div>
+        </div>
+        <div class="bg-primary text-white p-5 rounded-xl shadow-lg">
+          <h3 class="font-bold mb-4 flex items-center gap-2"><span class="material-symbols-outlined">bolt</span>摄入效率</h3>
+          <div class="space-y-4">
+            <div><div class="flex justify-between text-xs mb-1"><span>吞吐量</span><span class="font-bold">84%</span></div><div class="h-1.5 w-full bg-white/20 rounded-full"><div class="h-full bg-white rounded-full" style="width:84%"></div></div></div>
+            <div><div class="flex justify-between text-xs mb-1"><span>存储容量</span><span class="font-bold">62%</span></div><div class="h-1.5 w-full bg-white/20 rounded-full"><div class="h-full bg-white rounded-full" style="width:62%"></div></div></div>
+          </div>
+          <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+            <div class="text-center"><p class="text-[10px] opacity-70 uppercase">日处理量</p><p class="text-lg font-bold">2.4 TB</p></div>
+            <div class="text-center"><p class="text-[10px] opacity-70 uppercase">平均延迟</p><p class="text-lg font-bold">0.8s</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 15: DATA QUALITY ==================== -->
+<section id="page-data-quality" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-wrap justify-between items-end gap-4">
+      <div><h1 class="text-2xl font-black tracking-tight">数据质量监控</h1><p class="text-slate-500 text-sm">持续验证数据完整性与准确性</p></div>
+      <button data-action="export" class="flex items-center gap-2 rounded-lg h-11 px-6 bg-primary text-white text-sm font-bold shadow-sm"><span class="material-symbols-outlined text-lg">file_download</span>导出质量报告</button>
+    </div>
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between"><p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">总体准确率</p><span class="material-symbols-outlined text-emerald-500">verified</span></div>
+        <p class="text-3xl font-bold mt-2">97.8%</p>
+        <div class="flex items-center gap-1 text-emerald-600 text-sm font-bold mt-1"><span class="material-symbols-outlined text-sm">trending_up</span>+0.4%</div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between"><p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">完整率</p><span class="material-symbols-outlined text-amber-500">database</span></div>
+        <p class="text-3xl font-bold mt-2">94.2%</p>
+        <div class="flex items-center gap-1 text-rose-600 text-sm font-bold mt-1"><span class="material-symbols-outlined text-sm">trending_down</span>-1.2%</div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between"><p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">及时性</p><span class="material-symbols-outlined text-blue-500">schedule</span></div>
+        <p class="text-3xl font-bold mt-2">91.5%</p>
+        <div class="flex items-center gap-1 text-emerald-600 text-sm font-bold mt-1"><span class="material-symbols-outlined text-sm">trending_up</span>+0.1%</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Quality Chart -->
+      <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
+        <div class="flex items-center justify-between"><div><h3 class="font-bold">质量评分趋势</h3><p class="text-slate-500 text-sm">近30天历史表现</p></div><div class="flex items-baseline gap-2"><span class="text-2xl font-bold text-primary">96.3</span><span class="text-emerald-500 text-sm font-bold">平均分</span></div></div>
+        <div class="h-48 mt-4">
+          <svg fill="none" width="100%" height="100%" viewBox="0 0 478 150" preserveAspectRatio="none">
+            <path d="M0 109C18 109 18 21 36 21C54 21 54 41 72 41C90 41 90 93 108 93C127 93 127 33 145 33C163 33 163 101 181 101C199 101 199 61 217 61C236 61 236 45 254 45C272 45 272 121 290 121C308 121 308 149 326 149C344 149 344 1 363 1C381 1 381 81 399 81C417 81 417 129 435 129C453 129 453 25 472 25V150H0V109Z" fill="url(#dq_grad)"/>
+            <path d="M0 109C18 109 18 21 36 21C54 21 54 41 72 41C90 41 90 93 108 93C127 93 127 33 145 33C163 33 163 101 181 101C199 101 199 61 217 61C236 61 236 45 254 45C272 45 272 121 290 121C308 121 308 149 326 149C344 149 344 1 363 1C381 1 381 81 399 81C417 81 417 129 435 129C453 129 453 25 472 25" stroke="#1a355b" stroke-linecap="round" stroke-width="3"/>
+            <defs><linearGradient id="dq_grad" x1="236" y1="1" x2="236" y2="150" gradientUnits="userSpaceOnUse"><stop stop-color="#1a355b" stop-opacity="0.2"/><stop offset="1" stop-color="#1a355b" stop-opacity="0"/></linearGradient></defs>
+          </svg>
+        </div>
+        <div class="flex justify-between text-xs text-slate-400 mt-2"><span>第1天</span><span>第10天</span><span>第20天</span><span>今天</span></div>
+      </div>
+      <!-- Side stats -->
+      <div class="space-y-6">
+        <div class="bg-primary text-white rounded-xl p-6 shadow-lg">
+          <h3 class="font-bold text-lg mb-4">风险暴露</h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center"><span class="text-sm opacity-80">严重错误</span><span class="bg-rose-500 text-xs font-black px-2 py-1 rounded">12 高风险</span></div>
+            <div class="w-full bg-white/20 rounded-full h-2"><div class="bg-rose-500 h-2 rounded-full w-[15%]"></div></div>
+            <div class="flex justify-between items-center mt-2"><span class="text-sm opacity-80">警告</span><span class="bg-amber-500 text-xs font-black px-2 py-1 rounded text-primary">28 中等</span></div>
+            <div class="w-full bg-white/20 rounded-full h-2"><div class="bg-amber-500 h-2 rounded-full w-[45%]"></div></div>
+          </div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+          <h3 class="font-bold mb-4">规则效率</h3>
+          <div class="space-y-4">
+            <div class="flex items-center gap-3"><div class="size-2 rounded-full bg-emerald-500"></div><div class="flex-1"><div class="flex justify-between text-xs mb-1 font-semibold"><span>验证规则</span><span>92% 通过</span></div><div class="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="bg-emerald-500 h-1.5 rounded-full w-[92%]"></div></div></div></div>
+            <div class="flex items-center gap-3"><div class="size-2 rounded-full bg-blue-500"></div><div class="flex-1"><div class="flex justify-between text-xs mb-1 font-semibold"><span>模式检查</span><span>100% 通过</span></div><div class="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="bg-blue-500 h-1.5 rounded-full w-[100%]"></div></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Anomaly table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+        <h3 class="font-bold">检测到的异常与异常值</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead><tr class="bg-slate-50 dark:bg-slate-800/50"><th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">数据源</th><th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">问题描述</th><th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">严重级别</th><th class="px-6 py-3 text-xs font-bold text-slate-500 uppercase">时间</th></tr></thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50"><td class="px-6 py-4"><div><span class="font-semibold">监测上报系统</span><br/><span class="text-xs text-slate-400">传染病直报</span></div></td><td class="px-6 py-4">必填字段 'patient_id' 存在空值</td><td class="px-6 py-4"><span class="bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 px-2.5 py-0.5 rounded-full text-xs font-bold">严重</span></td><td class="px-6 py-4 text-slate-500">2分钟前</td></tr>
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50"><td class="px-6 py-4"><div><span class="font-semibold">环境监测数据</span><br/><span class="text-xs text-slate-400">IoT传感器</span></div></td><td class="px-6 py-4">模式漂移: 出现意外列 'sensor_v2'</td><td class="px-6 py-4"><span class="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 px-2.5 py-0.5 rounded-full text-xs font-bold">警告</span></td><td class="px-6 py-4 text-slate-500">45分钟前</td></tr>
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50"><td class="px-6 py-4"><div><span class="font-semibold">人口统计数据</span><br/><span class="text-xs text-slate-400">批量同步</span></div></td><td class="px-6 py-4">同步延迟超过阈值 (600s)</td><td class="px-6 py-4"><span class="bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 px-2.5 py-0.5 rounded-full text-xs font-bold">严重</span></td><td class="px-6 py-4 text-slate-500">3小时前</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 16: MODEL CENTER ==================== -->
+<section id="page-model-center" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div><h1 class="text-2xl font-black tracking-tight">模型中心</h1><p class="text-slate-500 text-sm">科学计算模型管理与监控</p></div>
+      <button data-action="new-model" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold">新建模型</button>
+    </div>
+    <!-- Model table -->
+    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm">
+      <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <h2 class="font-bold">活跃科学模型</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm">
+          <thead><tr class="bg-slate-50 dark:bg-slate-900 text-xs text-slate-500 uppercase font-bold"><th class="px-6 py-3">模型名称</th><th class="px-6 py-3">类型</th><th class="px-6 py-3">状态</th><th class="px-6 py-3">最近执行</th><th class="px-6 py-3">置信度</th></tr></thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+              <td class="px-6 py-4"><div class="font-semibold">SIR传染病传播模型</div><div class="text-xs text-slate-500">v4.2.1 - 分布式计算</div></td>
+              <td class="px-6 py-4"><span class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-medium">微分方程</span></td>
+              <td class="px-6 py-4"><div class="flex items-center gap-2 text-emerald-600 font-medium text-sm"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>运行中</div></td>
+              <td class="px-6 py-4 text-slate-500">2026-03-03 09:42</td>
+              <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="flex-1 h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="bg-emerald-500 h-full w-[96%]"></div></div><span class="text-xs font-bold">96%</span></div></td>
+            </tr>
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+              <td class="px-6 py-4"><div class="font-semibold">SEIR变异株扩展模型</div><div class="text-xs text-slate-500">v3.1.0 - 训练中...</div></td>
+              <td class="px-6 py-4"><span class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-medium">随机模型</span></td>
+              <td class="px-6 py-4"><div class="flex items-center gap-2 text-amber-600 font-medium text-sm"><span class="material-symbols-outlined text-[18px] animate-spin">sync</span>训练中</div></td>
+              <td class="px-6 py-4 text-slate-500">2026-03-03 14:15</td>
+              <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="flex-1 h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="bg-amber-500 h-full w-[45%]"></div></div><span class="text-xs font-bold">45%</span></div></td>
+            </tr>
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+              <td class="px-6 py-4"><div class="font-semibold">登革热媒介风险评估</div><div class="text-xs text-slate-500">v2.5.3 - 机器学习管道</div></td>
+              <td class="px-6 py-4"><span class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-medium">机器学习</span></td>
+              <td class="px-6 py-4"><div class="flex items-center gap-2 text-emerald-600 font-medium text-sm"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span>运行中</div></td>
+              <td class="px-6 py-4 text-slate-500">2026-03-02 22:00</td>
+              <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="flex-1 h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="bg-emerald-500 h-full w-[89%]"></div></div><span class="text-xs font-bold">89%</span></div></td>
+            </tr>
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+              <td class="px-6 py-4"><div class="font-semibold">时空聚集性分析模型</div><div class="text-xs text-slate-500">v1.8.0 - 区域聚合</div></td>
+              <td class="px-6 py-4"><span class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-medium">空间统计</span></td>
+              <td class="px-6 py-4"><div class="flex items-center gap-2 text-slate-400 font-medium text-sm"><span class="material-symbols-outlined text-[18px]">pause_circle</span>已停止</div></td>
+              <td class="px-6 py-4 text-slate-500">2026-02-28 06:00</td>
+              <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="flex-1 h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="bg-slate-300 h-full w-[82%]"></div></div><span class="text-xs font-bold">82%</span></div></td>
+            </tr>
+            <tr class="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+              <td class="px-6 py-4"><div class="font-semibold">AI大模型风险研判</div><div class="text-xs text-slate-500">v1.0.0 - 深度学习</div></td>
+              <td class="px-6 py-4"><span class="text-xs bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-medium">深度学习</span></td>
+              <td class="px-6 py-4"><div class="flex items-center gap-2 text-blue-600 font-medium text-sm"><span class="material-symbols-outlined text-[18px]">science</span>测试中</div></td>
+              <td class="px-6 py-4 text-slate-500">2026-03-03 10:30</td>
+              <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="flex-1 h-1.5 w-16 bg-slate-100 dark:bg-slate-800 rounded-full"><div class="bg-blue-500 h-full w-[78%]"></div></div><span class="text-xs font-bold">78%</span></div></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-6">
+      <!-- Log terminal -->
+      <div class="bg-background-dark text-slate-300 rounded-xl overflow-hidden flex flex-col h-[320px]">
+        <div class="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2"><span class="material-symbols-outlined text-emerald-500 text-sm">terminal</span><h3 class="text-xs font-bold uppercase tracking-wider">实时日志监控</h3></div>
+          <span class="bg-emerald-500/10 text-emerald-500 text-[10px] px-2 py-0.5 rounded border border-emerald-500/20">已连接</span>
+        </div>
+        <div class="flex-1 p-4 font-mono text-[12px] overflow-y-auto space-y-1">
+          <p><span class="text-slate-500">[14:22:01]</span> <span class="text-emerald-400">INFO:</span> 初始化SEIR-v3微分引擎...</p>
+          <p><span class="text-slate-500">[14:22:03]</span> <span class="text-emerald-400">INFO:</span> 加载训练数据中...</p>
+          <p><span class="text-slate-500">[14:22:05]</span> <span class="text-emerald-400">INFO:</span> 节点检查完成: 16实例活跃</p>
+          <p><span class="text-slate-500">[14:23:12]</span> <span class="text-amber-400">WARN:</span> 区域子模型4收敛缓慢，调整步长</p>
+          <p><span class="text-slate-500">[14:24:45]</span> <span class="text-emerald-400">INFO:</span> Epoch 45/100 完成，Loss: 0.0421</p>
+          <p><span class="text-slate-500">[14:25:30]</span> <span class="text-emerald-400">INFO:</span> 检查点已保存至集群存储</p>
+          <p class="animate-pulse border-l-2 border-emerald-500 pl-2"><span class="text-slate-500">[14:27:12]</span> <span class="text-emerald-400">INFO:</span> 正在运行验证...</p>
+        </div>
+      </div>
+      <!-- Parameter + Version history -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm flex items-center justify-between">
+          <div><h3 class="font-bold">参数工作室</h3><p class="text-xs text-slate-500 mt-1">配置权重、常数和数据路径</p></div>
+          <button data-action="configure-params" class="bg-primary/10 text-primary border border-primary/20 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">tune</span>配置</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex-1">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800"><h3 class="font-bold text-sm">部署历史</h3></div>
+          <div class="p-4 space-y-4">
+            <div class="flex gap-4"><div class="flex flex-col items-center"><div class="w-2 h-2 rounded-full bg-primary mt-2"></div><div class="w-0.5 h-full bg-slate-100 dark:bg-slate-800"></div></div><div class="pb-4"><span class="text-xs font-bold text-primary">v4.2.1-稳定版</span><p class="text-xs text-slate-500 mt-1">合并CDC更新的恢复率参数，优化并行处理</p><div class="text-[10px] text-slate-400 mt-1 font-mono">2026-03-03 09:42</div></div></div>
+            <div class="flex gap-4"><div class="flex flex-col items-center"><div class="w-2 h-2 rounded-full bg-slate-300 mt-2"></div></div><div><span class="text-xs font-bold text-slate-700 dark:text-slate-300">v4.2.0-测试版</span><p class="text-xs text-slate-500 mt-1">实验性多节点分布逻辑</p><div class="text-[10px] text-slate-400 mt-1 font-mono">2026-02-28 16:15</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 17: EVENT CENTER ==================== -->
+<section id="page-event-center" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div><h1 class="text-2xl font-black tracking-tight">外部事件中心</h1><p class="text-slate-500 text-sm">处理来自社交媒体、新闻和医疗机构的信号</p></div>
+      <div class="flex border-b border-slate-200 dark:border-slate-800 gap-6">
+        <button data-filter-btn class="pb-2 border-b-2 border-primary text-primary font-bold text-sm">全部信号</button>
+        <button data-filter-btn class="pb-2 border-b-2 border-transparent text-slate-500 font-semibold text-sm">医疗机构</button>
+        <button data-filter-btn class="pb-2 border-b-2 border-transparent text-slate-500 font-semibold text-sm">社交媒体</button>
+        <button data-filter-btn class="pb-2 border-b-2 border-transparent text-slate-500 font-semibold text-sm">新闻媒体</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Event table -->
+      <div class="lg:col-span-2">
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+          <table class="w-full text-left text-sm">
+            <thead><tr class="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800"><th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">来源</th><th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">事件详情</th><th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">时间</th><th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">预警</th><th class="px-6 py-3 text-xs font-bold uppercase text-slate-500">操作</th></tr></thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+                <td class="px-6 py-4"><span class="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2.5 py-0.5 rounded-full text-xs font-medium">社交媒体</span></td>
+                <td class="px-6 py-4"><div><span class="text-sm font-bold">微博报告某小区多人发热</span><br/><span class="text-xs text-slate-500">多名居民反映同一小区出现聚集性发热...</span></div></td>
+                <td class="px-6 py-4 text-slate-500">12分钟前</td>
+                <td class="px-6 py-4"><span class="material-symbols-outlined text-red-500 text-[18px]">warning</span></td>
+                <td class="px-6 py-4"><button data-action="convert-task" class="text-primary hover:bg-primary/10 px-3 py-1 rounded border border-primary/20 text-xs font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span>转为任务</button></td>
+              </tr>
+              <tr class="bg-primary/5 border-l-4 border-l-primary hover:bg-primary/10 cursor-pointer">
+                <td class="px-6 py-4"><span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 px-2.5 py-0.5 rounded-full text-xs font-medium">医疗机构</span></td>
+                <td class="px-6 py-4"><div><span class="text-sm font-bold">第一医院报告疑似聚集病例</span><br/><span class="text-xs text-slate-500">急诊科24小时内收治同一社区5名腹泻患者...</span></div></td>
+                <td class="px-6 py-4 text-slate-500">45分钟前</td>
+                <td class="px-6 py-4"><span class="material-symbols-outlined text-slate-300 text-[18px]">block</span></td>
+                <td class="px-6 py-4"><button data-action="convert-task" class="bg-primary text-white px-3 py-1 rounded text-xs font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span>转为任务</button></td>
+              </tr>
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+                <td class="px-6 py-4"><span class="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 px-2.5 py-0.5 rounded-full text-xs font-medium">新闻媒体</span></td>
+                <td class="px-6 py-4"><div><span class="text-sm font-bold">厦门日报：某校停课通知</span><br/><span class="text-xs text-slate-500">思明区某小学因流感样病例增多临时停课...</span></div></td>
+                <td class="px-6 py-4 text-slate-500">1小时前</td>
+                <td class="px-6 py-4"><span class="material-symbols-outlined text-amber-500 text-[18px]">warning</span></td>
+                <td class="px-6 py-4"><button data-action="convert-task" class="text-primary hover:bg-primary/10 px-3 py-1 rounded border border-primary/20 text-xs font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span>转为任务</button></td>
+              </tr>
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
+                <td class="px-6 py-4"><span class="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2.5 py-0.5 rounded-full text-xs font-medium">社交媒体</span></td>
+                <td class="px-6 py-4"><div><span class="text-sm font-bold">居民投诉蚊虫滋生</span><br/><span class="text-xs text-slate-500">嘉莲街道某小区居民反映积水蚊虫滋生严重...</span></div></td>
+                <td class="px-6 py-4 text-slate-500">3小时前</td>
+                <td class="px-6 py-4"><span class="material-symbols-outlined text-slate-300 text-[18px]">block</span></td>
+                <td class="px-6 py-4"><button data-action="convert-task" class="text-primary hover:bg-primary/10 px-3 py-1 rounded border border-primary/20 text-xs font-bold flex items-center gap-1"><span class="material-symbols-outlined text-[16px]">task</span>转为任务</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Preview card -->
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+          <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/30">
+            <h3 class="text-sm font-bold uppercase text-slate-500 tracking-wider">事件预览</h3>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="h-40 bg-slate-200 dark:bg-slate-800 rounded-lg flex items-center justify-center">
+              <span class="material-symbols-outlined text-4xl text-slate-400">satellite_alt</span>
+            </div>
+            <h4 class="text-lg font-black leading-tight">第一医院报告疑似聚集病例</h4>
+            <div class="flex items-center gap-2 text-xs text-slate-500"><span class="material-symbols-outlined text-[14px]">location_on</span>思明区中华街道</div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">急诊科24小时内收治同一社区5名腹泻患者，初步判断为诺如病毒感染，需进一步流行病学调查。</p>
+            <button data-action="convert-task" class="w-full bg-primary text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2"><span class="material-symbols-outlined">assignment_turned_in</span>转为正式任务</button>
+          </div>
+        </div>
+        <div class="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl p-6">
+          <div class="flex items-start gap-3">
+            <span class="material-symbols-outlined text-amber-600">priority_high</span>
+            <div><h4 class="text-sm font-bold text-amber-900 dark:text-amber-100">关联预警已激活</h4><p class="text-xs text-amber-700 dark:text-amber-300">此事件与2小时前发布的"区域资源紧张"预警相关联。</p><a data-nav-link="/warning-center" class="text-xs font-bold text-amber-900 dark:text-amber-100 underline cursor-pointer">查看关联预警 →</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== PAGE 18: SYSTEM ADMIN ==================== -->
+<section id="page-system-admin" class="page-section hidden">
+  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      <div><h1 class="text-2xl font-black tracking-tight text-primary dark:text-slate-100">系统管理</h1><p class="text-slate-500 text-sm">管理组织架构、权限协议和数据安全审计</p></div>
+      <div class="flex gap-3">
+        <button data-action="export" class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-primary dark:text-slate-200 font-semibold rounded-lg border border-slate-200 dark:border-slate-700"><span class="material-symbols-outlined text-base">download</span>导出报告</button>
+        <button data-action="add-resource" class="flex items-center gap-2 px-4 py-2 bg-primary text-white font-semibold rounded-lg shadow-sm"><span class="material-symbols-outlined text-base">add</span>新建资源</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <!-- Left column -->
+      <div class="lg:col-span-4 space-y-6">
+        <!-- Org tree -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="font-bold text-primary dark:text-slate-200 flex items-center gap-2"><span class="material-symbols-outlined text-primary">account_tree</span>组织架构</h3>
+          </div>
+          <div class="p-4 space-y-3">
+            <details class="group" open>
+              <summary class="list-none cursor-pointer flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
+                <span class="material-symbols-outlined text-slate-400 group-open:rotate-90 transition-transform">chevron_right</span>
+                <span class="material-symbols-outlined text-primary">corporate_fare</span>
+                <span class="text-sm font-semibold">厦门市疾控中心</span>
+              </summary>
+              <div class="ml-9 mt-2 space-y-2 border-l-2 border-slate-100 dark:border-slate-800 pl-4">
+                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-slate-400 text-sm">monitoring</span><span class="text-sm">传染病监测科</span></div>
+                <details class="group">
+                  <summary class="list-none cursor-pointer flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-symbols-outlined text-slate-400 group-open:rotate-90 transition-transform text-xs">chevron_right</span>
+                    <span class="material-symbols-outlined text-slate-400 text-sm">engineering</span>
+                    <span class="text-sm">信息技术科</span>
+                  </summary>
+                  <div class="ml-6 mt-1 space-y-1 pl-4 border-l border-slate-100 dark:border-slate-800">
+                    <div class="text-xs p-2 text-slate-500">系统运维组</div>
+                    <div class="text-xs p-2 text-slate-500">数据安全组</div>
+                  </div>
+                </details>
+                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800"><span class="material-symbols-outlined text-slate-400 text-sm">gavel</span><span class="text-sm">应急管理科</span></div>
+              </div>
+            </details>
+            <details class="group">
+              <summary class="list-none cursor-pointer flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
+                <span class="material-symbols-outlined text-slate-400 group-open:rotate-90 transition-transform">chevron_right</span>
+                <span class="material-symbols-outlined text-primary">location_on</span>
+                <span class="text-sm font-semibold">思明区分中心</span>
+              </summary>
+              <div class="ml-9 mt-2 space-y-2 border-l-2 border-slate-100 dark:border-slate-800 pl-4">
+                <div class="text-sm p-2">筼筜街道卫生站</div>
+                <div class="text-sm p-2">中华街道卫生站</div>
+                <div class="text-sm p-2">鹭江街道卫生站</div>
+              </div>
+            </details>
+          </div>
+        </div>
+        <!-- Data desensitization -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800"><h3 class="font-bold text-primary dark:text-slate-200 flex items-center gap-2"><span class="material-symbols-outlined text-primary">visibility_off</span>数据脱敏设置</h3></div>
+          <div class="p-5 space-y-6">
+            <div class="flex items-center justify-between"><div><p class="text-sm font-semibold">PII掩码</p><p class="text-xs text-slate-500">自动遮蔽姓名和身份证号</p></div><div class="w-10 h-5 bg-primary rounded-full relative cursor-pointer"><div class="absolute right-1 top-1 size-3 bg-white rounded-full"></div></div></div>
+            <div class="flex items-center justify-between"><div><p class="text-sm font-semibold">日志匿名化</p><p class="text-xs text-slate-500">从公开日志中剥离IP地址</p></div><div class="w-10 h-5 bg-slate-300 dark:bg-slate-700 rounded-full relative cursor-pointer"><div class="absolute left-1 top-1 size-3 bg-white rounded-full"></div></div></div>
+            <div><label class="block text-xs font-bold text-slate-400 mb-2 uppercase">默认脱敏级别</label><select class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:ring-primary"><option>标准（部分遮蔽）</option><option>高级（完全脱敏）</option><option>低级（仅审计）</option></select></div>
+          </div>
+        </div>
+      </div>
+      <!-- Right column -->
+      <div class="lg:col-span-8 space-y-6">
+        <!-- Role permission matrix -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800"><h3 class="font-bold text-primary dark:text-slate-200 flex items-center gap-2"><span class="material-symbols-outlined text-primary">grid_view</span>角色权限矩阵</h3></div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left">
+              <thead><tr class="bg-slate-50 dark:bg-slate-800/50"><th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase border-b border-slate-100 dark:border-slate-800">模块/资源</th><th class="px-6 py-3 text-xs font-bold text-primary text-center uppercase border-b border-slate-100 dark:border-slate-800">管理员</th><th class="px-6 py-3 text-xs font-bold text-primary text-center uppercase border-b border-slate-100 dark:border-slate-800">分析师</th><th class="px-6 py-3 text-xs font-bold text-primary text-center uppercase border-b border-slate-100 dark:border-slate-800">调度员</th></tr></thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <tr><td class="px-6 py-4 font-medium">用户管理</td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-600">check_circle</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-slate-300">block</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-slate-300">block</span></td></tr>
+                <tr><td class="px-6 py-4 font-medium">数据审计</td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-600">check_circle</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-600">check_circle</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-slate-300">block</span></td></tr>
+                <tr><td class="px-6 py-4 font-medium">实时调度</td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-600">check_circle</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-slate-300">block</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-600">check_circle</span></td></tr>
+                <tr><td class="px-6 py-4 font-medium">系统配置</td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-green-600">check_circle</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-blue-500">visibility</span></td><td class="px-6 py-4 text-center"><span class="material-symbols-outlined text-slate-300">block</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Audit log -->
+        <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+            <h3 class="font-bold text-primary dark:text-slate-200 flex items-center gap-2"><span class="material-symbols-outlined text-primary">history_edu</span>综合审计日志</h3>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead><tr class="bg-slate-50 dark:bg-slate-800/50"><th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">时间戳</th><th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">操作人</th><th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">操作内容</th><th class="px-6 py-3 text-xs font-bold text-slate-400 uppercase">状态</th></tr></thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <tr><td class="px-6 py-4 text-xs text-slate-500">2026-03-03 14:32:11</td><td class="px-6 py-4 flex items-center gap-2"><div class="size-6 bg-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold">CZ</div><span>陈志明 (管理员)</span></td><td class="px-6 py-4">更新角色权限矩阵：分析师</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase">成功</span></td></tr>
+                <tr><td class="px-6 py-4 text-xs text-slate-500">2026-03-03 12:05:45</td><td class="px-6 py-4 flex items-center gap-2"><div class="size-6 bg-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold">LX</div><span>李雪芬 (管理员)</span></td><td class="px-6 py-4">导出月度传染病报告</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase">成功</span></td></tr>
+                <tr><td class="px-6 py-4 text-xs text-slate-500">2026-03-03 09:15:22</td><td class="px-6 py-4 flex items-center gap-2"><div class="size-6 bg-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold">SYS</div><span>系统 (自动)</span></td><td class="px-6 py-4">自动备份失败</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full bg-red-100 text-red-700 text-[10px] font-bold uppercase">失败</span></td></tr>
+                <tr><td class="px-6 py-4 text-xs text-slate-500">2026-03-02 18:44:01</td><td class="px-6 py-4 flex items-center gap-2"><div class="size-6 bg-slate-200 rounded-full flex items-center justify-center text-[10px] font-bold">WJ</div><span>王建华 (分析师)</span></td><td class="px-6 py-4">修改数据脱敏设置</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700 text-[10px] font-bold uppercase">警告</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center border-t border-slate-100 dark:border-slate-800">
+            <p class="text-xs text-slate-500">显示 1-4 / 共 1,284 条</p>
+            <div class="flex gap-1">
+              <button data-page-btn class="size-7 flex items-center justify-center rounded border border-primary bg-primary text-white text-xs font-bold">1</button>
+              <button data-page-btn class="size-7 flex items-center justify-center rounded border border-slate-200 bg-white dark:bg-slate-800 text-slate-600 text-xs">2</button>
+              <button data-page-btn class="size-7 flex items-center justify-center rounded border border-slate-200 bg-white dark:bg-slate-800 text-slate-600 text-xs">3</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- end main-content -->
+</div><!-- end main area -->
+</div><!-- end flex container -->
+
+<!-- ========== REPORT MODAL ========== -->
+<div id="report-modal" class="hidden fixed inset-0 z-[9998] bg-black/50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col" onclick="event.stopPropagation()">
+    <div class="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
+      <h2 class="text-lg font-bold text-primary dark:text-slate-100 flex items-center gap-2">
+        <span class="material-symbols-outlined">description</span>示例报告预览
+      </h2>
+      <div class="flex items-center gap-2">
+        <button data-action="download-report" class="bg-primary text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">download</span>下载报告
+        </button>
+        <button data-action="close-modal" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+    <div id="report-modal-content" class="flex-1 overflow-y-auto p-6">
+      <!-- Content populated by JS -->
+    </div>
+  </div>
+</div>
+
+<script src="js/mock-data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
