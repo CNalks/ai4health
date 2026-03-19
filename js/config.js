@@ -3,7 +3,15 @@
 
   var query = new URLSearchParams(window.location.search);
   var storedApiOrigin = localStorage.getItem('ai4health.apiOrigin');
-  var apiOrigin = query.get('apiOrigin') || storedApiOrigin || 'http://127.0.0.1:8000';
+  var apiOrigin = query.get('apiOrigin');
+
+  if (apiOrigin == null && storedApiOrigin != null) {
+    apiOrigin = storedApiOrigin;
+  }
+
+  if (apiOrigin == null) {
+    apiOrigin = '';
+  }
 
   apiOrigin = String(apiOrigin || '').replace(/\/$/, '');
   localStorage.setItem('ai4health.apiOrigin', apiOrigin);
