@@ -31,18 +31,22 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
 .page-section { min-height: 100vh; }
 @keyframes fade-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .animate-fade-in { animation: fade-in 0.3s ease-out; }
+.mobile-drawer-open { overflow: hidden; }
 </style>
 </head>
-<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display">
-<div class="flex h-screen overflow-hidden">
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display overflow-x-hidden">
+<div class="relative flex min-h-screen overflow-hidden">
 
 <!-- ========== SIDEBAR ========== -->
-<aside id="app-sidebar" class="w-60 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col shrink-0 hidden">
+<aside id="app-sidebar" class="fixed inset-y-0 left-0 z-40 flex w-72 max-w-[84vw] -translate-x-full pointer-events-none flex-col border-r border-slate-200 bg-white transition-transform duration-300 ease-out dark:border-slate-800 dark:bg-slate-900 shrink-0 hidden lg:static lg:z-auto lg:w-60 lg:max-w-none lg:translate-x-0 lg:pointer-events-auto">
   <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
     <div class="size-8 bg-primary rounded-lg flex items-center justify-center text-white">
       <span class="material-symbols-outlined">health_and_safety</span>
     </div>
     <h2 class="text-primary dark:text-slate-100 text-sm font-bold tracking-tight leading-tight">传染病智能<br/>预警平台</h2>
+    <button data-action="close-sidebar" class="ml-auto flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 lg:hidden">
+      <span class="material-symbols-outlined text-lg">close</span>
+    </button>
   </div>
   <nav class="flex-1 p-3 space-y-1 overflow-y-auto text-sm">
     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2 px-3">总览</p>
@@ -106,17 +110,21 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
     </button>
   </div>
 </aside>
+<div id="sidebar-backdrop" class="fixed inset-0 z-30 hidden bg-slate-950/45 backdrop-blur-[1px] lg:hidden"></div>
 
 <!-- ========== MAIN AREA ========== -->
 <div class="flex-1 flex flex-col overflow-hidden">
 
 <!-- ========== TOP BAR ========== -->
-<header id="app-topbar" class="h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-6 shrink-0 hidden">
-  <div class="flex items-center gap-4">
-    <h1 class="text-sm font-bold text-primary dark:text-slate-100">厦门市思明区疾控中心</h1>
+<header id="app-topbar" class="sticky top-0 z-20 h-14 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between px-4 sm:px-6 shrink-0 hidden">
+  <div class="flex min-w-0 items-center gap-3">
+    <button data-action="open-sidebar" class="flex size-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 lg:hidden">
+      <span class="material-symbols-outlined text-lg">menu</span>
+    </button>
+    <h1 class="max-w-[10rem] truncate text-sm font-bold text-primary dark:text-slate-100 sm:max-w-none">厦门市思明区疾控中心</h1>
   </div>
-  <div class="flex items-center gap-3">
-    <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 relative">
+  <div class="flex items-center gap-2 sm:gap-3">
+    <button class="relative rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800">
       <span class="material-symbols-outlined text-slate-500">notifications</span>
       <span class="absolute top-1.5 right-1.5 size-2 bg-red-500 rounded-full"></span>
     </button>
@@ -132,7 +140,7 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
 
 <!-- ==================== PAGE 1: LOGIN ==================== -->
 <section id="page-login" class="page-section hidden">
-  <div class="min-h-screen flex">
+  <div class="min-h-screen flex flex-col lg:flex-row">
     <!-- Left branding -->
     <div class="hidden lg:flex lg:w-1/2 bg-primary flex-col justify-center items-center p-12 text-white">
       <div class="max-w-md space-y-6">
@@ -158,7 +166,7 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
       </div>
     </div>
     <!-- Right form -->
-    <div class="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-background-dark">
+    <div class="w-full lg:w-1/2 flex items-center justify-center px-4 py-8 sm:px-6 lg:p-8 bg-white dark:bg-background-dark">
       <div class="w-full max-w-sm space-y-6">
         <div class="lg:hidden flex items-center gap-3 text-primary mb-4">
           <span class="material-symbols-outlined text-3xl">health_and_safety</span>
@@ -199,50 +207,65 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
 
 <!-- ==================== PAGE 2: DASHBOARD ==================== -->
 <section id="page-dashboard" class="page-section hidden">
-  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+  <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-black tracking-tight">综合仪表盘</h1>
         <p class="text-slate-500 text-sm">厦门市思明区传染病智能预警系统 — 实时态势感知</p>
       </div>
-      <div class="flex gap-3">
-        <button data-action="export" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+      <div class="flex w-full sm:w-auto gap-3">
+        <button data-action="export" class="w-full sm:w-auto justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
           <span class="material-symbols-outlined text-sm">download</span>导出报告
         </button>
       </div>
     </div>
+    <div id="trial-connection-banner" class="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-slate-700 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-slate-200">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-2.5">
+          <span class="relative flex size-2.5 shrink-0">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
+            <span class="relative inline-flex size-2.5 rounded-full bg-sky-500"></span>
+          </span>
+          <p id="trial-note" class="font-medium truncate">正在连接 RIDs 试运行数据源...</p>
+        </div>
+        <div class="flex shrink-0 items-center gap-2 text-xs font-semibold">
+          <span id="trial-connection-status" class="rounded-full bg-white px-2.5 py-0.5 text-slate-600 shadow-sm dark:bg-slate-900 dark:text-slate-200">连接中</span>
+          <span class="hidden sm:inline text-slate-400">数据日期 <span id="trial-data-date" class="ml-1 text-slate-900 dark:text-slate-100">--</span></span>
+        </div>
+      </div>
+    </div>
     <!-- KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-[3px] border-l-rose-500 p-5 rounded-xl shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <span class="material-symbols-outlined text-rose-500">crisis_alert</span>
-          <span class="text-rose-500 text-xs font-bold bg-rose-50 dark:bg-rose-900/20 px-2 py-0.5 rounded">+2</span>
+          <span id="dashboard-kpi-flu-growth" class="text-rose-500 text-xs font-bold bg-rose-50 dark:bg-rose-900/20 px-2 py-0.5 rounded">--</span>
         </div>
-        <p class="text-3xl font-bold">12</p>
-        <p class="text-sm text-slate-500 mt-1">紧急预警</p>
+        <p id="dashboard-kpi-flu-count" class="text-3xl font-bold">--</p>
+        <p class="text-sm text-slate-500 mt-1">流感报告人数</p>
       </div>
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-[3px] border-l-amber-500 p-5 rounded-xl shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <span class="material-symbols-outlined text-amber-500">warning</span>
-          <span class="text-emerald-500 text-xs font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">-5%</span>
+          <span id="dashboard-kpi-fever-growth" class="text-emerald-500 text-xs font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded">--</span>
         </div>
-        <p class="text-3xl font-bold">48</p>
-        <p class="text-sm text-slate-500 mt-1">高风险预警</p>
+        <p id="dashboard-kpi-fever-visits" class="text-3xl font-bold">--</p>
+        <p class="text-sm text-slate-500 mt-1">发热门诊就诊量</p>
       </div>
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-[3px] border-l-blue-500 p-5 rounded-xl shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <span class="material-symbols-outlined text-blue-500">task_alt</span>
-          <span class="text-blue-500 text-xs font-bold">82%</span>
+          <span id="dashboard-kpi-ili-change" class="text-blue-500 text-xs font-bold">--</span>
         </div>
-        <p class="text-3xl font-bold">24</p>
-        <p class="text-sm text-slate-500 mt-1">进行中任务</p>
+        <p id="dashboard-kpi-ili-percent" class="text-3xl font-bold">--</p>
+        <p class="text-sm text-slate-500 mt-1">ILI门诊占比</p>
       </div>
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 border-l-[3px] border-l-slate-400 p-5 rounded-xl shadow-sm">
         <div class="flex items-center justify-between mb-3">
           <span class="material-symbols-outlined text-slate-400">schedule</span>
         </div>
-        <p class="text-3xl font-bold">5</p>
-        <p class="text-sm text-slate-500 mt-1">逾期预警</p>
+        <p id="dashboard-kpi-outbreaks" class="text-3xl font-bold">--</p>
+        <p class="text-sm text-slate-500 mt-1">学校疫情起数</p>
       </div>
     </div>
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -258,7 +281,7 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
             <defs><linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1a355b" stop-opacity="0.3"/><stop offset="100%" stop-color="#1a355b" stop-opacity="0"/></linearGradient></defs>
           </svg>
         </div>
-        <div class="flex justify-between text-xs text-slate-400 mt-2"><span>7天前</span><span>今日</span><span>7天后</span></div>
+      <div class="hidden sm:flex justify-between text-xs text-slate-400 mt-2"><span>7天前</span><span>今日</span><span>7天后</span></div>
       </div>
       <!-- Risk Level -->
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-xl shadow-sm">
@@ -267,11 +290,11 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
           <div class="relative size-32">
             <svg class="size-full -rotate-90" viewBox="0 0 36 36">
               <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#e2e8f0" stroke-width="3"/>
-              <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="3" stroke-dasharray="72, 100"/>
+              <path id="dashboard-risk-ring" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#f59e0b" stroke-width="3" stroke-dasharray="72, 100"/>
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center">
-              <span class="text-2xl font-black">72</span>
-              <span class="text-xs text-amber-500 font-bold">中高风险</span>
+              <span id="dashboard-risk-score" class="text-2xl font-black">--</span>
+              <span id="dashboard-risk-level" class="text-xs text-amber-500 font-bold">待计算</span>
             </div>
           </div>
         </div>
@@ -395,24 +418,24 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
 
 <!-- ==================== PAGE 4: WARNING CENTER ==================== -->
 <section id="page-warning-center" class="page-section hidden">
-  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+  <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <h1 class="text-2xl font-black tracking-tight">预警中心</h1>
         <p class="text-slate-500 text-sm">集中管理所有传染病预警信号</p>
       </div>
-      <div class="flex gap-3">
-        <button data-action="export" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+      <div class="flex w-full sm:w-auto gap-3">
+        <button data-action="export" class="w-full sm:w-auto justify-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
           <span class="material-symbols-outlined text-sm">download</span>导出
         </button>
       </div>
     </div>
     <!-- Summary cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold">65</p><p class="text-xs text-slate-500">活跃预警</p></div>
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold text-rose-600">12</p><p class="text-xs text-slate-500">严重</p></div>
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold text-amber-600">48</p><p class="text-xs text-slate-500">高风险</p></div>
-      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p class="text-2xl font-bold">2.4h</p><p class="text-xs text-slate-500">平均响应时间</p></div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p id="warning-total-alerts" class="text-2xl font-bold">--</p><p class="text-xs text-slate-500">活跃预警</p></div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p id="warning-critical-alerts" class="text-2xl font-bold text-rose-600">--</p><p class="text-xs text-slate-500">严重</p></div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p id="warning-high-alerts" class="text-2xl font-bold text-amber-600">--</p><p class="text-xs text-slate-500">高风险</p></div>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl"><p id="warning-data-date" class="text-2xl font-bold">--</p><p class="text-xs text-slate-500">数据日期</p></div>
     </div>
     <!-- Filter buttons -->
     <div class="flex gap-2 flex-wrap">
@@ -424,12 +447,13 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
     </div>
     <!-- Warning table -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
+      <div id="warning-mobile-list" class="space-y-3 p-4 md:hidden"></div>
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full text-left text-sm">
           <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs text-slate-500 uppercase">
             <tr><th class="px-5 py-3">预警编号</th><th class="px-5 py-3">级别</th><th class="px-5 py-3">触发指标</th><th class="px-5 py-3">影响区域</th><th class="px-5 py-3">状态</th><th class="px-5 py-3">时间</th></tr>
           </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tbody id="warning-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
             <tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">
               <td class="px-5 py-3 font-mono text-xs">WRN-2026-0042</td>
               <td class="px-5 py-3"><span class="bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 px-2 py-0.5 rounded-full text-xs font-bold">严重</span></td>
@@ -468,7 +492,7 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
           </tbody>
         </table>
       </div>
-      <div class="p-4 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs text-slate-500">
+      <div class="hidden md:flex p-4 border-t border-slate-100 dark:border-slate-800 justify-between items-center text-xs text-slate-500">
         <span>显示 1-5 / 共 65 条</span>
         <div class="flex gap-1">
           <button data-page-btn class="size-7 flex items-center justify-center rounded border border-primary bg-primary text-white text-xs font-bold">1</button>
@@ -482,7 +506,7 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
 
 <!-- ==================== PAGE 5: WARNING DETAIL ==================== -->
 <section id="page-warning-detail" class="page-section hidden">
-  <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+  <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
     <div class="flex items-center gap-2 text-sm text-slate-500 mb-2">
       <a data-breadcrumb="/warning-center" class="hover:text-primary cursor-pointer">预警中心</a>
       <span class="material-symbols-outlined text-xs">chevron_right</span>
@@ -562,21 +586,27 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
 <!-- ==================== PAGE 6: TREND PREDICTION ==================== -->
 <section id="page-trend-prediction" class="page-section hidden">
   <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-    <div>
-      <h1 class="text-2xl font-black tracking-tight">趋势预测分析</h1>
-      <p class="text-slate-500 text-sm">基于AI模型的传染病发病趋势预测</p>
+    <div class="flex items-center gap-3">
+      <span class="material-symbols-outlined text-3xl text-primary">insights</span>
+      <div>
+        <h1 class="text-xl font-black tracking-tight leading-tight">趋势预测分析</h1>
+        <p class="text-slate-500 text-xs">基于AI模型的传染病发病趋势预测</p>
+      </div>
     </div>
     <!-- Filter bar -->
-    <div class="flex flex-wrap gap-3">
-      <select class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800"><option>思明区全区</option><option>筼筜街道</option><option>中华街道</option><option>鹭江街道</option></select>
-      <select class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800"><option>全部疾病</option><option>流感样病例</option><option>登革热</option><option>诺如病毒</option></select>
-      <input type="date" class="text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-800" value="2026-03-03"/>
+    <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 sm:grid sm:grid-cols-3 sm:overflow-visible">
+      <select class="shrink-0 w-28 sm:w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800"><option>思明区全区</option><option>筼筜街道</option><option>中华街道</option><option>鹭江街道</option></select>
+      <select class="shrink-0 w-28 sm:w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800"><option>全部疾病</option><option>流感样病例</option><option>登革热</option><option>诺如病毒</option></select>
+      <input type="date" class="shrink-0 w-32 sm:w-full text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800" value="2026-03-03"/>
+    </div>
+    <div id="trend-trial-note" class="rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm leading-6 text-sky-900 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100">
+      正在加载 AI_lab 聚合后的 RIDs 试运行趋势说明...
     </div>
     <!-- Chart -->
     <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm">
       <div class="flex items-center justify-between mb-4">
         <h3 class="font-bold">发病率预测曲线</h3>
-        <div class="flex gap-4 text-xs"><span class="flex items-center gap-1"><span class="size-2 bg-primary rounded-full"></span>历史数据</span><span class="flex items-center gap-1"><span class="size-2 bg-rose-500 rounded-full"></span>预测趋势</span><span class="flex items-center gap-1"><span class="size-2 bg-blue-200 rounded-full"></span>置信区间</span></div>
+        <div class="flex flex-wrap gap-3 text-xs"><span class="flex items-center gap-1"><span class="size-2 bg-primary rounded-full"></span>历史数据</span><span class="flex items-center gap-1"><span class="size-2 bg-rose-500 rounded-full"></span>预测趋势</span><span class="flex items-center gap-1"><span class="size-2 bg-blue-200 rounded-full"></span>置信区间</span></div>
       </div>
       <div class="h-56">
         <svg width="100%" height="100%" viewBox="0 0 600 200" preserveAspectRatio="none">
@@ -587,24 +617,24 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
           <text x="305" y="15" font-size="10" fill="#94a3b8">今日</text>
         </svg>
       </div>
-      <div class="flex justify-between text-xs text-slate-400 mt-2"><span>2月17日</span><span>2月24日</span><span>3月3日</span><span>3月10日</span><span>3月17日</span></div>
+      <div class="hidden sm:flex justify-between text-xs text-slate-400 mt-2"><span>2月17日</span><span>2月24日</span><span>3月3日</span><span>3月10日</span><span>3月17日</span></div>
     </div>
     <!-- Stats cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
-        <p class="text-xs text-slate-500 uppercase font-bold">预测7天峰值</p>
-        <p class="text-2xl font-bold mt-2">12.4/10万</p>
-        <p class="text-xs text-rose-500 font-bold mt-1">较当前 +34%</p>
+        <p id="trend-card-1-label" class="text-xs text-slate-500 uppercase font-bold">预测7天峰值</p>
+        <p id="trend-card-1-value" class="text-2xl font-bold mt-2">--</p>
+        <p id="trend-card-1-meta" class="text-xs text-rose-500 font-bold mt-1">--</p>
       </div>
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
-        <p class="text-xs text-slate-500 uppercase font-bold">模型可靠度</p>
-        <p class="text-2xl font-bold mt-2">94.2%</p>
-        <p class="text-xs text-emerald-500 font-bold mt-1">高置信度</p>
+        <p id="trend-card-2-label" class="text-xs text-slate-500 uppercase font-bold">模型可靠度</p>
+        <p id="trend-card-2-value" class="text-2xl font-bold mt-2">--</p>
+        <p id="trend-card-2-meta" class="text-xs text-emerald-500 font-bold mt-1">--</p>
       </div>
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-xl shadow-sm">
-        <p class="text-xs text-slate-500 uppercase font-bold">增长率</p>
-        <p class="text-2xl font-bold mt-2">+2.8%/天</p>
-        <p class="text-xs text-amber-500 font-bold mt-1">加速上升期</p>
+        <p id="trend-card-3-label" class="text-xs text-slate-500 uppercase font-bold">增长率</p>
+        <p id="trend-card-3-value" class="text-2xl font-bold mt-2">--</p>
+        <p id="trend-card-3-meta" class="text-xs text-amber-500 font-bold mt-1">--</p>
       </div>
     </div>
   </div>
@@ -1484,6 +1514,7 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
 </div>
 
 <script src="js/mock-data.js"></script>
+<script src="js/config.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

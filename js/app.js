@@ -24,6 +24,69 @@
   };
 
   const publicRoutes = ['/login'];
+  const APP_CONFIG = window.APP_CONFIG || {};
+  const TRIAL_API_BASE = (APP_CONFIG.ridsApiBaseUrl || '').replace(/\/$/, '');
+  const TRIAL_STATE = {
+    loading: false,
+    loaded: false,
+    data: null,
+    error: null
+  };
+  const UI_STATE = {
+    sidebarOpen: false
+  };
+
+  function isDesktopLayout() {
+    return window.innerWidth >= 1024;
+  }
+
+  function setSidebarOpen(nextOpen) {
+    UI_STATE.sidebarOpen = !!nextOpen;
+    applySidebarState();
+  }
+
+  function applySidebarState() {
+    var sidebar = document.getElementById('app-sidebar');
+    var backdrop = document.getElementById('sidebar-backdrop');
+
+    if (!sidebar) return;
+
+    if (sidebar.classList.contains('hidden')) {
+      sidebar.classList.remove('translate-x-0');
+      sidebar.classList.add('-translate-x-full');
+      sidebar.classList.add('pointer-events-none');
+      sidebar.classList.remove('pointer-events-auto');
+      if (backdrop) backdrop.classList.add('hidden');
+      document.body.classList.remove('mobile-drawer-open');
+      return;
+    }
+
+    if (isDesktopLayout()) {
+      sidebar.classList.remove('-translate-x-full');
+      sidebar.classList.add('translate-x-0');
+      sidebar.classList.remove('pointer-events-none');
+      sidebar.classList.add('pointer-events-auto');
+      if (backdrop) backdrop.classList.add('hidden');
+      document.body.classList.remove('mobile-drawer-open');
+      return;
+    }
+
+    if (UI_STATE.sidebarOpen) {
+      sidebar.classList.remove('-translate-x-full');
+      sidebar.classList.add('translate-x-0');
+      sidebar.classList.remove('pointer-events-none');
+      sidebar.classList.add('pointer-events-auto');
+      if (backdrop) backdrop.classList.remove('hidden');
+      document.body.classList.add('mobile-drawer-open');
+    } else {
+      sidebar.classList.remove('translate-x-0');
+      sidebar.classList.add('-translate-x-full');
+      sidebar.classList.add('pointer-events-none');
+      sidebar.classList.remove('pointer-events-auto');
+      if (backdrop) backdrop.classList.add('hidden');
+      document.body.classList.remove('mobile-drawer-open');
+    }
+  }
 
   function navigate(hash) {
     window.location.hash = hash;
@@ -65,11 +128,14 @@
       if (topbar) topbar.classList.add('hidden');
       if (sidebar) sidebar.classList.add('hidden');
       if (mainContent) mainContent.className = 'flex-1';
+      UI_STATE.sidebarOpen = false;
     } else {
       if (topbar) topbar.classList.remove('hidden');
       if (sidebar) sidebar.classList.remove('hidden');
       if (mainContent) mainContent.className = 'flex-1 overflow-y-auto';
+      UI_STATE.sidebarOpen = false;
     }
+    applySidebarState();
 
     // Update sidebar active
     document.querySelectorAll('[data-nav-link]').forEach(function (link) {
@@ -89,6 +155,14 @@
     var userAvatarEl = document.getElementById('topbar-avatar');
     if (userAvatarEl && typeof MOCK !== 'undefined') {
       userAvatarEl.textContent = MOCK.currentUser.avatar;
+    }
+
+    if (hash !== '/login') {
+      if (TRIAL_STATE.loaded && TRIAL_STATE.data) {
+        renderTrialDashboard(TRIAL_STATE.data);
+      } else if (!TRIAL_STATE.loading) {
+        loadTrialDashboard();
+      }
     }
   }
 
@@ -116,6 +190,241 @@
       toast.style.transition = 'opacity 0.3s';
       setTimeout(function () { toast.remove(); }, 300);
     }, 2500);
+  }
+
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value == null || value === '' ? '--' : String(value);
+  }
+
+  function toNumber(value) {
+    var num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+  }
+
+  function formatSignedPercent(value, digits) {
+    if (value == null || value === '') return '--';
+    var num = toNumber(value);
+    var fixed = num.toFixed(digits == null ? 1 : digits);
+    return (num > 0 ? '+' : '') + fixed + '%';
+  }
+
+  function formatPercent(value, digits) {
+    if (value == null || value === '') return '--';
+    return toNumber(value).toFixed(digits == null ? 2 : digits) + '%';
+  }
+
+  function formatDate(value) {
+    if (!value) return '--';
+    return String(value).slice(0, 10);
+  }
+
+  function formatProjection(value) {
+    if (value == null || value === '') return '--';
+    var num = toNumber(value);
+    return Number.isInteger(num) ? String(num) : String(Number(num.toFixed(1)));
+  }
+
+  function getAlertTone(level) {
+    switch (level) {
+      case 'critical':
+        return {
+          pill: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+          label: '严重'
+        };
+      case 'high':
+        return {
+          pill: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+          label: '高风险'
+        };
+      case 'medium':
+        return {
+          pill: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+          label: '中等'
+        };
+      default:
+        return {
+          pill: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+          label: '提示'
+        };
+    }
+  }
+
+  function renderWarningRows(alerts) {
+    var body = document.getElementById('warning-table-body');
+    var mobileList = document.getElementById('warning-mobile-list');
+    if (!body) return;
+
+    if (!alerts || !alerts.length) {
+      body.innerHTML = '<tr><td colspan="6" class="px-5 py-6 text-center text-sm text-slate-500">暂无试运行预警数据</td></tr>';
+      if (mobileList) {
+        mobileList.innerHTML = '<div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">暂无试运行预警数据</div>';
+      }
+      return;
+    }
+
+    var rowsHtml = alerts.map(function (alert) {
+      var tone = getAlertTone(alert.level);
+      var source = alert.source || 'RIDs';
+      var title = alert.title || alert.message || '未命名预警';
+      return [
+        '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">',
+        '<td class="px-5 py-3 font-mono text-xs">', alert.id || '--', '</td>',
+        '<td class="px-5 py-3"><span class="', tone.pill, ' px-2 py-0.5 rounded-full text-xs font-bold">', tone.label, '</span></td>',
+        '<td class="px-5 py-3">', title, '</td>',
+        '<td class="px-5 py-3">', source, '</td>',
+        '<td class="px-5 py-3"><span class="bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 px-2 py-0.5 rounded-full text-xs font-bold">试运行</span></td>',
+        '<td class="px-5 py-3 text-xs text-slate-500">', formatDate(alert.report_date), '</td>',
+        '</tr>'
+      ].join('');
+    }).join('');
+
+    body.innerHTML = rowsHtml;
+
+    if (mobileList) {
+      mobileList.innerHTML = alerts.map(function (alert) {
+        var tone = getAlertTone(alert.level);
+        var source = alert.source || 'RIDs';
+        var title = alert.title || alert.message || '未命名预警';
+        return [
+          '<article class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">',
+          '<div class="flex items-start justify-between gap-3">',
+          '<div class="min-w-0">',
+          '<p class="truncate font-mono text-[11px] text-slate-500 dark:text-slate-400">', alert.id || '--', '</p>',
+          '<h3 class="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">', title, '</h3>',
+          '</div>',
+          '<span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ', tone.pill, '">', tone.label, '</span>',
+          '</div>',
+          '<div class="mt-3 grid grid-cols-2 gap-3 text-xs">',
+          '<div><p class="text-slate-400">来源</p><p class="mt-1 font-medium text-slate-700 dark:text-slate-200">', source, '</p></div>',
+          '<div><p class="text-slate-400">日期</p><p class="mt-1 font-medium text-slate-700 dark:text-slate-200">', formatDate(alert.report_date), '</p></div>',
+          '</div>',
+          '<p class="mt-3 text-xs leading-6 text-slate-600 dark:text-slate-300">', alert.message || '试运行阶段已捕获该预警，请结合桌面端继续跟踪。', '</p>',
+          '</article>'
+        ].join('');
+      }).join('');
+    }
+  }
+
+  function renderTrialError(message) {
+    var note = message || 'RIDs 试运行数据暂时不可用';
+    var statusEl = document.getElementById('trial-connection-status');
+    var banner = document.getElementById('trial-connection-banner');
+
+    if (banner) {
+      banner.className = 'rounded-xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-slate-700 shadow-sm dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-slate-200';
+    }
+    if (statusEl) {
+      statusEl.className = 'rounded-full bg-white px-3 py-1 text-rose-600 shadow-sm dark:bg-slate-900 dark:text-rose-300';
+      statusEl.textContent = '连接失败';
+    }
+
+    setText('trial-note', note);
+    setText('trial-data-date', '--');
+    setText('warning-data-date', '--');
+    setText('trend-trial-note', note);
+    renderWarningRows([]);
+  }
+
+  function renderTrialDashboard(data) {
+    var overview = data && data.overview ? data.overview : {};
+    var alerts = data && Array.isArray(data.alerts) ? data.alerts : [];
+    var projections = data && data.projections ? data.projections : {};
+    var statusEl = document.getElementById('trial-connection-status');
+    var banner = document.getElementById('trial-connection-banner');
+    var ring = document.getElementById('dashboard-risk-ring');
+    var riskLevel = document.getElementById('dashboard-risk-level');
+    var criticalCount = alerts.filter(function (item) { return item.level === 'critical'; }).length;
+    var highCount = alerts.filter(function (item) { return item.level === 'high'; }).length;
+    var riskScore = Math.max(0, Math.min(100, Math.round(toNumber(overview.risk_score))));
+    var riskStroke = '#f59e0b';
+    var riskTextClass = 'text-xs font-bold text-amber-500';
+
+    if (riskScore >= 75) {
+      riskStroke = '#ef4444';
+      riskTextClass = 'text-xs font-bold text-rose-500';
+    } else if (riskScore < 55) {
+      riskStroke = '#3b82f6';
+      riskTextClass = 'text-xs font-bold text-blue-500';
+    }
+
+    if (banner) {
+      banner.className = 'rounded-xl border border-sky-200 bg-sky-50 px-5 py-4 text-sm text-slate-700 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-slate-200';
+    }
+    if (statusEl) {
+      statusEl.className = 'rounded-full bg-white px-3 py-1 text-emerald-600 shadow-sm dark:bg-slate-900 dark:text-emerald-300';
+      statusEl.textContent = '已连接';
+    }
+
+    setText(
+      'trial-note',
+      ((data.source_label || 'RIDs') + ' x AI_lab 试运行已接通')
+    );
+    setText('trial-data-date', formatDate(overview.data_date));
+    setText('dashboard-kpi-flu-growth', formatSignedPercent(overview.flu_growth_rate, 1));
+    setText('dashboard-kpi-flu-count', overview.flu_count);
+    setText('dashboard-kpi-fever-growth', formatSignedPercent(overview.fever_growth_rate, 1));
+    setText('dashboard-kpi-fever-visits', overview.total_visits);
+    setText('dashboard-kpi-ili-change', formatSignedPercent(overview.ili_percent_change, 2));
+    setText('dashboard-kpi-ili-percent', formatPercent(overview.ili_percent, 2));
+    setText('dashboard-kpi-outbreaks', overview.total_outbreaks);
+    setText('dashboard-risk-score', riskScore);
+    setText('dashboard-risk-level', overview.risk_level || '待计算');
+    setText('warning-total-alerts', alerts.length);
+    setText('warning-critical-alerts', criticalCount);
+    setText('warning-high-alerts', highCount);
+    setText('warning-data-date', formatDate(overview.data_date));
+    setText('trend-trial-note', data.trial_note || '试运行说明暂不可用');
+    setText('trend-card-1-label', (projections.flu && projections.flu.label) || '流感报告人数预测');
+    setText('trend-card-1-value', formatProjection(projections.flu && projections.flu.projected_next));
+    setText('trend-card-1-meta', '较当前 ' + formatSignedPercent(projections.flu && projections.flu.change_percent, 1));
+    setText('trend-card-2-label', (projections.fever && projections.fever.label) || '发热门诊就诊量预测');
+    setText('trend-card-2-value', formatProjection(projections.fever && projections.fever.projected_next));
+    setText('trend-card-2-meta', '较当前 ' + formatSignedPercent(projections.fever && projections.fever.change_percent, 1));
+    setText('trend-card-3-label', (projections.outbreaks && projections.outbreaks.label) || '学校疫情起数预测');
+    setText('trend-card-3-value', formatProjection(projections.outbreaks && projections.outbreaks.projected_next));
+    setText('trend-card-3-meta', '较当前 ' + formatSignedPercent(projections.outbreaks && projections.outbreaks.change_percent, 1));
+
+    if (ring) {
+      ring.setAttribute('stroke', riskStroke);
+      ring.setAttribute('stroke-dasharray', riskScore + ', 100');
+    }
+    if (riskLevel) {
+      riskLevel.className = riskTextClass;
+    }
+
+    renderWarningRows(alerts);
+  }
+
+  function loadTrialDashboard() {
+    if (!TRIAL_API_BASE) {
+      TRIAL_STATE.error = new Error('Missing ai4health RIDs API base URL');
+      renderTrialError('未配置 RIDs API 地址');
+      return;
+    }
+
+    TRIAL_STATE.loading = true;
+    fetch(TRIAL_API_BASE + '/dashboard?limit=8')
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('RIDs API returned ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        TRIAL_STATE.loaded = true;
+        TRIAL_STATE.data = data;
+        TRIAL_STATE.error = null;
+        renderTrialDashboard(data);
+      })
+      .catch(function (error) {
+        TRIAL_STATE.error = error;
+        renderTrialError(error && error.message ? error.message : 'RIDs 数据读取失败');
+      })
+      .finally(function () {
+        TRIAL_STATE.loading = false;
+      });
   }
 
   // Report modal
@@ -202,6 +511,7 @@
         var navLink = e.target.closest('[data-nav-link]');
         if (navLink) {
           e.preventDefault();
+          setSidebarOpen(false);
           navigate('#' + navLink.getAttribute('data-nav-link'));
           return;
         }
@@ -246,6 +556,9 @@
         if (e.target.id === 'report-modal') {
           hideReportModal();
         }
+        if (e.target.id === 'sidebar-backdrop') {
+          setSidebarOpen(false);
+        }
         return;
       }
 
@@ -256,6 +569,12 @@
           break;
         case 'logout':
           handleLogout();
+          break;
+        case 'open-sidebar':
+          setSidebarOpen(true);
+          break;
+        case 'close-sidebar':
+          setSidebarOpen(false);
           break;
         case 'export':
         case 'download':
@@ -280,6 +599,12 @@
   function init() {
     initEvents();
     window.addEventListener('hashchange', router);
+    window.addEventListener('resize', applySidebarState);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        setSidebarOpen(false);
+      }
+    });
     router();
   }
 
