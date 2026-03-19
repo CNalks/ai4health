@@ -1,8 +1,7 @@
-// 传染病智能预警平台 - 应用逻辑
 (function () {
   'use strict';
 
-  const routes = {
+  var routes = {
     '/login': 'page-login',
     '/dashboard': 'page-dashboard',
     '/command-map': 'page-command-map',
@@ -23,261 +22,783 @@
     '/system-admin': 'page-system-admin'
   };
 
-  const publicRoutes = ['/login'];
+  var publicRoutes = ['/login'];
+  var liveRoutes = ['/dashboard', '/warning-center', '/trend-prediction'];
+  var state = {
+    source: window.APP_CONFIG.defaultSource,
+    dashboard: null,
+    dashboardPromise: null,
+    dashboardStatus: 'idle',
+    errorMessage: ''
+  };
 
-  function navigate(hash) {
-    window.location.hash = hash;
+  function parseHashRoute() {
+    var rawHash = window.location.hash.slice(1) || '/login';
+    var parts = rawHash.split('?');
+    var path = parts[0] || '/login';
+    var params = new URLSearchParams(parts[1] || '');
+    return {
+      path: path,
+      params: params
+    };
   }
 
-  function router() {
-    const hash = window.location.hash.slice(1) || '/login';
-    const isLoggedIn = sessionStorage.getItem('loggedIn');
+  function buildHash(path, params) {
+    var query = params && params.toString();
+    return '#' + path + (query ? '?' + query : '');
+  }
 
-    if (!isLoggedIn && !publicRoutes.includes(hash)) {
-      navigate('#/login');
-      return;
+  function navigate(path, params) {
+    window.location.hash = buildHash(path, params);
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return '--';
     }
-    if (isLoggedIn && hash === '/login') {
-      navigate('#/dashboard');
-      return;
-    }
+    return String(value).replace('T', ' ').replace(/\.\d+Z$/, 'Z');
+  }
 
-    const pageId = routes[hash];
-    if (!pageId) {
-      navigate('#/dashboard');
-      return;
-    }
-
-    // Hide all pages
-    document.querySelectorAll('.page-section').forEach(function (s) {
-      s.classList.add('hidden');
-    });
-
-    // Show target page
-    var target = document.getElementById(pageId);
-    if (target) target.classList.remove('hidden');
-
-    // Toggle chrome
-    var topbar = document.getElementById('app-topbar');
-    var sidebar = document.getElementById('app-sidebar');
-    var mainContent = document.getElementById('main-content');
-    if (hash === '/login') {
-      if (topbar) topbar.classList.add('hidden');
-      if (sidebar) sidebar.classList.add('hidden');
-      if (mainContent) mainContent.className = 'flex-1';
-    } else {
-      if (topbar) topbar.classList.remove('hidden');
-      if (sidebar) sidebar.classList.remove('hidden');
-      if (mainContent) mainContent.className = 'flex-1 overflow-y-auto';
-    }
-
-    // Update sidebar active
-    document.querySelectorAll('[data-nav-link]').forEach(function (link) {
-      var linkHash = link.getAttribute('data-nav-link');
-      if (linkHash === hash) {
-        link.className = 'flex items-center gap-3 px-3 py-2 rounded-lg bg-primary/10 text-primary font-semibold text-sm cursor-pointer';
-      } else {
-        link.className = 'flex items-center gap-3 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer';
+  function colorClasses(name) {
+    var map = {
+      rose: {
+        chip: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+        text: 'text-rose-600',
+        accent: 'before:bg-rose-500'
+      },
+      amber: {
+        chip: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+        text: 'text-amber-600',
+        accent: 'before:bg-amber-500'
+      },
+      yellow: {
+        chip: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+        text: 'text-yellow-600',
+        accent: 'before:bg-yellow-500'
+      },
+      emerald: {
+        chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+        text: 'text-emerald-600',
+        accent: 'before:bg-emerald-500'
+      },
+      blue: {
+        chip: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        text: 'text-blue-600',
+        accent: 'before:bg-blue-500'
+      },
+      slate: {
+        chip: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+        text: 'text-slate-500',
+        accent: 'before:bg-slate-400'
       }
-    });
-
-    // Update topbar user info
-    var userNameEl = document.getElementById('topbar-username');
-    if (userNameEl && typeof MOCK !== 'undefined') {
-      userNameEl.textContent = MOCK.currentUser.name;
-    }
-    var userAvatarEl = document.getElementById('topbar-avatar');
-    if (userAvatarEl && typeof MOCK !== 'undefined') {
-      userAvatarEl.textContent = MOCK.currentUser.avatar;
-    }
+    };
+    return map[name] || map.slate;
   }
 
-  // Login
-  function handleLogin(e) {
-    e.preventDefault();
-    sessionStorage.setItem('loggedIn', 'true');
-    navigate('#/dashboard');
-  }
-
-  // Logout
-  function handleLogout() {
-    sessionStorage.removeItem('loggedIn');
-    navigate('#/login');
-  }
-
-  // Toast notification
   function showToast(message) {
     var toast = document.createElement('div');
-    toast.className = 'fixed bottom-6 right-6 bg-primary text-white px-6 py-3 rounded-lg shadow-lg z-[9999] text-sm font-medium animate-fade-in';
+    toast.className = 'fixed bottom-24 right-4 md:bottom-6 md:right-6 bg-primary text-white px-4 py-3 rounded-xl shadow-lg z-[9999] text-sm font-medium animate-fade-in max-w-xs';
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(function () {
       toast.style.opacity = '0';
       toast.style.transition = 'opacity 0.3s';
-      setTimeout(function () { toast.remove(); }, 300);
-    }, 2500);
+      setTimeout(function () {
+        toast.remove();
+      }, 300);
+    }, 2400);
   }
 
-  // Report modal
   function showReportModal() {
     var modal = document.getElementById('report-modal');
-    if (!modal) return;
-    // Populate report content
     var contentEl = document.getElementById('report-modal-content');
-    if (contentEl && typeof MOCK !== 'undefined') {
-      var r = MOCK.sampleReport;
-      var html = '<div class="space-y-6 text-sm text-slate-700 dark:text-slate-300">';
-      html += '<div class="text-center border-b pb-4 border-slate-200 dark:border-slate-700">';
-      html += '<h2 class="text-xl font-bold text-primary dark:text-slate-100">' + r.title + '</h2>';
-      html += '<p class="text-slate-500 mt-1">' + r.subtitle + '</p>';
-      html += '<p class="text-xs text-slate-400 mt-1">报告编号: ' + r.reportId + ' | 生成日期: ' + r.date + '</p>';
-      html += '</div>';
-      r.sections.forEach(function (s) {
-        html += '<div>';
-        html += '<h3 class="font-bold text-primary dark:text-slate-100 mb-2">' + s.title + '</h3>';
-        html += '<p class="whitespace-pre-line leading-relaxed">' + s.content + '</p>';
-        html += '</div>';
-      });
-      html += '<div>';
-      html += '<h3 class="font-bold text-primary dark:text-slate-100 mb-2">四、各街道发病情况</h3>';
-      html += '<table class="w-full text-xs border-collapse border border-slate-200 dark:border-slate-700">';
-      html += '<thead><tr class="bg-slate-100 dark:bg-slate-800">';
-      html += '<th class="border border-slate-200 dark:border-slate-700 px-3 py-2">街道</th>';
-      html += '<th class="border border-slate-200 dark:border-slate-700 px-3 py-2">发病率</th>';
-      html += '<th class="border border-slate-200 dark:border-slate-700 px-3 py-2">状态</th>';
-      html += '<th class="border border-slate-200 dark:border-slate-700 px-3 py-2">趋势</th>';
-      html += '</tr></thead><tbody>';
-      r.tableData.forEach(function (row) {
-        html += '<tr><td class="border border-slate-200 dark:border-slate-700 px-3 py-2">' + row.grid + '</td>';
-        html += '<td class="border border-slate-200 dark:border-slate-700 px-3 py-2">' + row.rate + '</td>';
-        html += '<td class="border border-slate-200 dark:border-slate-700 px-3 py-2">' + row.status + '</td>';
-        html += '<td class="border border-slate-200 dark:border-slate-700 px-3 py-2">' + row.trend + '</td></tr>';
-      });
-      html += '</tbody></table>';
-      html += '</div>';
-      html += '</div>';
-      contentEl.innerHTML = html;
+    if (!modal || !contentEl || typeof MOCK === 'undefined') {
+      return;
     }
+
+    var report = MOCK.sampleReport;
+    var html = '<div class="space-y-6 text-sm text-slate-700 dark:text-slate-300">';
+    html += '<div class="text-center border-b pb-4 border-slate-200 dark:border-slate-700">';
+    html += '<h2 class="text-xl font-bold text-primary dark:text-slate-100">' + escapeHtml(report.title) + '</h2>';
+    html += '<p class="text-slate-500 mt-1">' + escapeHtml(report.subtitle) + '</p>';
+    html += '<p class="text-xs text-slate-400 mt-1">报告编号: ' + escapeHtml(report.reportId) + ' | 生成日期: ' + escapeHtml(report.date) + '</p>';
+    html += '</div>';
+    report.sections.forEach(function (section) {
+      html += '<div><h3 class="font-bold text-primary dark:text-slate-100 mb-2">' + escapeHtml(section.title) + '</h3>';
+      html += '<p class="whitespace-pre-line leading-relaxed">' + escapeHtml(section.content) + '</p></div>';
+    });
+    html += '</div>';
+    contentEl.innerHTML = html;
     modal.classList.remove('hidden');
   }
 
   function hideReportModal() {
     var modal = document.getElementById('report-modal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+      modal.classList.add('hidden');
+    }
   }
 
   function downloadReport() {
-    if (typeof MOCK === 'undefined') return;
-    var r = MOCK.sampleReport;
-    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + r.title + '</title>';
-    html += '<style>body{font-family:sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#333}';
-    html += 'h1{color:#1a355b;text-align:center}h2{color:#1a355b;margin-top:24px}';
-    html += 'table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ddd;padding:8px;text-align:left}';
-    html += 'th{background:#f6f7f8}.subtitle{text-align:center;color:#666;margin-top:4px}</style></head><body>';
-    html += '<h1>' + r.title + '</h1><p class="subtitle">' + r.subtitle + '</p>';
-    html += '<p style="text-align:center;color:#999;font-size:12px">报告编号: ' + r.reportId + ' | 日期: ' + r.date + '</p>';
-    r.sections.forEach(function (s) {
-      html += '<h2>' + s.title + '</h2><p>' + s.content.replace(/\n/g, '<br>') + '</p>';
+    if (typeof MOCK === 'undefined') {
+      return;
+    }
+    var report = MOCK.sampleReport;
+    var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + escapeHtml(report.title) + '</title></head><body>';
+    html += '<h1>' + escapeHtml(report.title) + '</h1>';
+    html += '<p>' + escapeHtml(report.subtitle) + '</p>';
+    report.sections.forEach(function (section) {
+      html += '<h2>' + escapeHtml(section.title) + '</h2><p>' + escapeHtml(section.content).replace(/\n/g, '<br>') + '</p>';
     });
-    html += '<h2>四、各街道发病情况</h2><table><tr><th>街道</th><th>发病率</th><th>状态</th><th>趋势</th></tr>';
-    r.tableData.forEach(function (row) {
-      html += '<tr><td>' + row.grid + '</td><td>' + row.rate + '</td><td>' + row.status + '</td><td>' + row.trend + '</td></tr>';
-    });
-    html += '</table></body></html>';
+    html += '</body></html>';
     var blob = new Blob([html], { type: 'text/html' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = r.title + '.html';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    var anchor = document.createElement('a');
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = report.title + '.html';
+    anchor.click();
+    URL.revokeObjectURL(anchor.href);
     showToast('报告已下载');
   }
 
-  // Event delegation
+  function ensureEnhancementStyles() {
+    if (document.getElementById('thread-enhancement-styles')) {
+      return;
+    }
+
+    var style = document.createElement('style');
+    style.id = 'thread-enhancement-styles';
+    style.textContent = [
+      '.mobile-bottom-nav{box-shadow:0 -10px 30px rgba(15,23,42,.08);backdrop-filter:blur(12px);}',
+      '.mobile-nav-link.active{color:#1a355b;background:rgba(26,53,91,.08);}',
+      '.trial-banner{background:linear-gradient(135deg,#eff6ff 0%,#ffffff 100%);border:1px solid rgba(59,130,246,.18);}',
+      '.dark .trial-banner{background:linear-gradient(135deg,rgba(30,41,59,.9) 0%,rgba(15,23,42,.94) 100%);border-color:rgba(148,163,184,.18);}',
+      '.pulse-dot{animation:pulse-dot 1.8s ease-in-out infinite;}',
+      '@keyframes pulse-dot{0%{transform:scale(.92);opacity:.6;}50%{transform:scale(1.15);opacity:1;}100%{transform:scale(.92);opacity:.6;}}',
+      '.kpi-strip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:.25rem;margin-left:-.25rem;margin-right:-.25rem;padding-left:.25rem;padding-right:.25rem;}',
+      '.kpi-strip > article{min-width:76vw;scroll-snap-align:center;}',
+      '.kpi-card{position:relative;overflow:hidden;}',
+      '.kpi-card::before{content:"";position:absolute;inset:.75rem auto .75rem .75rem;width:4px;border-radius:999px;background:#1a355b;opacity:.95;}',
+      '.mobile-section-card{border:1px solid rgb(226 232 240);border-radius:1rem;background:rgba(255,255,255,.96);padding:1rem;box-shadow:0 10px 25px rgba(15,23,42,.06);}',
+      '.dark .mobile-section-card{border-color:rgb(51 65 85);background:rgba(15,23,42,.9);}',
+      '.mobile-data-stack{display:grid;gap:.75rem;}',
+      '.loading-shell{opacity:.55;pointer-events:none;filter:saturate(.6);}',
+      '.source-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .7rem;border-radius:999px;font-size:.75rem;font-weight:700;}',
+      '@media (min-width:768px){.kpi-strip{display:grid;overflow:visible;padding:0;margin:0;scroll-snap-type:none;}.kpi-strip > article{min-width:0;}.mobile-only{display:none !important;}}',
+      '@media (max-width:767px){body{padding-bottom:5.5rem;}.desktop-only{display:none !important;}.page-tight{padding:1rem;}.compact-title{font-size:1.375rem;line-height:1.2;}.compact-subtitle{font-size:.85rem;line-height:1.45;}}'
+    ].join('');
+    document.head.appendChild(style);
+  }
+
+  function ensureMobileNavigation() {
+    if (document.getElementById('mobile-bottom-nav')) {
+      return;
+    }
+
+    var nav = document.createElement('nav');
+    nav.id = 'mobile-bottom-nav';
+    nav.className = 'mobile-bottom-nav mobile-only fixed bottom-0 inset-x-0 z-40 border-t border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 px-3 py-2 md:hidden';
+    nav.innerHTML = [
+      '<div class="grid grid-cols-5 gap-2">',
+      createMobileNavLink('/dashboard', 'dashboard', '总览'),
+      createMobileNavLink('/warning-center', 'warning', '预警'),
+      createMobileNavLink('/trend-prediction', 'trending_up', '趋势'),
+      createMobileNavLink('/data-sources', 'database', '数据'),
+      createMobileNavLink('/system-admin', 'tune', '更多'),
+      '</div>'
+    ].join('');
+    document.body.appendChild(nav);
+  }
+
+  function createMobileNavLink(path, icon, label) {
+    return [
+      '<button type="button" class="mobile-nav-link flex flex-col items-center justify-center rounded-2xl px-2 py-2 text-[11px] font-medium text-slate-500 dark:text-slate-300" data-mobile-nav="',
+      path,
+      '">',
+      '<span class="material-symbols-outlined text-[20px] leading-none">',
+      icon,
+      '</span>',
+      '<span class="mt-1">',
+      label,
+      '</span></button>'
+    ].join('');
+  }
+
+  function updateMobileNavigation(path) {
+    document.querySelectorAll('[data-mobile-nav]').forEach(function (button) {
+      if (button.getAttribute('data-mobile-nav') === path) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+  }
+
+  function applyChrome(path) {
+    var topbar = document.getElementById('app-topbar');
+    var sidebar = document.getElementById('app-sidebar');
+    var mainContent = document.getElementById('main-content');
+    if (!topbar || !sidebar || !mainContent) {
+      return;
+    }
+
+    if (path === '/login') {
+      topbar.className = 'hidden';
+      sidebar.className = 'hidden';
+      mainContent.className = 'flex-1';
+      return;
+    }
+
+    topbar.className = 'sticky top-0 z-30 h-14 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex items-center justify-between px-4 md:px-6 shrink-0';
+    sidebar.className = 'hidden md:flex w-60 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col shrink-0';
+    mainContent.className = 'flex-1 overflow-y-auto';
+  }
+
+  function updateSidebarActive(path) {
+    document.querySelectorAll('[data-nav-link]').forEach(function (link) {
+      var target = link.getAttribute('data-nav-link');
+      if (target === path) {
+        link.className = 'flex items-center gap-3 px-3 py-2 rounded-xl bg-primary/10 text-primary font-semibold text-sm cursor-pointer';
+      } else {
+        link.className = 'flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm cursor-pointer';
+      }
+    });
+  }
+
+  function updateTopbarUser() {
+    if (typeof MOCK === 'undefined') {
+      return;
+    }
+    var userNameEl = document.getElementById('topbar-username');
+    var userAvatarEl = document.getElementById('topbar-avatar');
+    if (userNameEl) {
+      userNameEl.textContent = MOCK.currentUser.name;
+    }
+    if (userAvatarEl) {
+      userAvatarEl.textContent = MOCK.currentUser.avatar;
+    }
+  }
+
+  function getDatasourceSource(params) {
+    var nextSource = params.get('source') || state.source || window.APP_CONFIG.defaultSource;
+    state.source = nextSource;
+    return nextSource;
+  }
+
+  function setLoadingState(isLoading) {
+    ['/dashboard', '/warning-center', '/trend-prediction'].forEach(function (path) {
+      var section = document.getElementById(routes[path]);
+      if (section) {
+        section.classList.toggle('loading-shell', isLoading);
+      }
+    });
+  }
+
+  async function ensureDashboardData(force) {
+    if (state.dashboard && !force) {
+      return state.dashboard;
+    }
+    if (state.dashboardPromise && !force) {
+      return state.dashboardPromise;
+    }
+
+    state.dashboardStatus = 'loading';
+    state.errorMessage = '';
+    setLoadingState(true);
+
+    state.dashboardPromise = window.AI4HApi.fetchDashboard(state.source, window.APP_CONFIG.dashboardLimit)
+      .then(function (payload) {
+        state.dashboard = payload;
+        state.dashboardStatus = 'ready';
+        renderLiveSections();
+        return payload;
+      })
+      .catch(function (error) {
+        state.dashboard = window.AI4HApi.buildMockViewModel(MOCK);
+        state.dashboardStatus = 'fallback';
+        state.errorMessage = error && error.message ? error.message : '无法连接 AI_lab';
+        renderLiveSections();
+        return state.dashboard;
+      })
+      .finally(function () {
+        state.dashboardPromise = null;
+        setLoadingState(false);
+      });
+
+    return state.dashboardPromise;
+  }
+
+  function renderLiveSections() {
+    if (!state.dashboard) {
+      return;
+    }
+    renderDashboardPage(state.dashboard);
+    renderWarningCenter(state.dashboard);
+    renderTrendPrediction(state.dashboard);
+    renderDatasourcePage(state.dashboard);
+  }
+
+  function ensureBanner(container) {
+    var banner = container.querySelector('[data-trial-banner]');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.setAttribute('data-trial-banner', 'true');
+      banner.className = 'trial-banner rounded-2xl px-4 py-4 md:px-5 md:py-4';
+      container.insertBefore(banner, container.children[1]);
+    }
+    return banner;
+  }
+
+  function renderDashboardPage(viewModel) {
+    var section = document.getElementById('page-dashboard');
+    if (!section) {
+      return;
+    }
+
+    var wrapper = section.querySelector('.max-w-7xl');
+    if (!wrapper) {
+      return;
+    }
+    wrapper.classList.add('page-tight');
+
+    var title = wrapper.querySelector('h1');
+    var subtitle = wrapper.querySelector('p.text-slate-500');
+    if (title) title.classList.add('compact-title');
+    if (subtitle) subtitle.classList.add('compact-subtitle');
+
+    var banner = ensureBanner(wrapper);
+    var liveChip = viewModel.meta.isLive
+      ? '<span class="source-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"><span class="pulse-dot inline-block size-2 rounded-full bg-emerald-500"></span>真实数据</span>'
+      : '<span class="source-pill bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"><span class="pulse-dot inline-block size-2 rounded-full bg-amber-500"></span>演示回退</span>';
+    banner.innerHTML = [
+      '<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">',
+      '<div class="space-y-1">',
+      '<p class="text-sm font-bold text-primary dark:text-slate-100">',
+      escapeHtml(viewModel.meta.sourceLabel),
+      ' x AI_lab 数据总览</p>',
+      '<p class="text-xs text-slate-600 dark:text-slate-300">',
+      escapeHtml(viewModel.meta.note || '已连接 AI_lab datasource 接口'),
+      '</p>',
+      '</div>',
+      '<div class="flex flex-wrap gap-2 items-center">',
+      liveChip,
+      '<span class="source-pill bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">最新日期 ',
+      escapeHtml(viewModel.meta.dataDate || '--'),
+      '</span>',
+      '</div>',
+      '</div>'
+    ].join('');
+
+    var kpiGrid = wrapper.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4');
+    if (kpiGrid) {
+      kpiGrid.className = 'kpi-strip md:grid md:grid-cols-2 lg:grid-cols-4 gap-4';
+      var cards = Array.prototype.slice.call(kpiGrid.children);
+      cards.forEach(function (card, index) {
+        var item = viewModel.dashboardCards[index];
+        var accent = colorClasses(item && item.trend && item.trend.className.indexOf('rose') >= 0 ? 'rose' :
+          item && item.trend && item.trend.className.indexOf('amber') >= 0 ? 'amber' :
+          item && item.trend && item.trend.className.indexOf('blue') >= 0 ? 'blue' :
+          item && item.trend && item.trend.className.indexOf('emerald') >= 0 ? 'emerald' : 'slate');
+        card.className = 'kpi-card bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 pl-7 rounded-2xl shadow-sm';
+        if (!item) {
+          return;
+        }
+        card.innerHTML = [
+          '<div class="flex items-start justify-between gap-3 mb-3">',
+          '<span class="material-symbols-outlined ',
+          accent.text,
+          '">',
+          escapeHtml(item.icon),
+          '</span>',
+          '<span class="text-xs font-bold px-2.5 py-1 rounded-full ',
+          item.trend.className,
+          '">',
+          escapeHtml(item.trend.text),
+          '</span>',
+          '</div>',
+          '<p class="text-[30px] font-black tracking-tight">',
+          escapeHtml(item.value),
+          '</p>',
+          '<p class="text-sm text-slate-500 mt-1">',
+          escapeHtml(item.label),
+          '</p>'
+        ].join('');
+      });
+    }
+
+    var riskCard = wrapper.querySelectorAll('.grid.grid-cols-1.lg\\:grid-cols-3.gap-6 > div')[1];
+    if (riskCard) {
+      var paths = riskCard.querySelectorAll('path');
+      var gauge = Math.max(0, Math.min(100, Number(viewModel.risk.score || 0)));
+      if (paths[1]) {
+        paths[1].setAttribute('stroke-dasharray', String(gauge) + ', 100');
+      }
+      var numberEl = riskCard.querySelector('.text-2xl');
+      var labelEl = riskCard.querySelector('.text-xs');
+      if (numberEl) numberEl.textContent = String(gauge);
+      if (labelEl) labelEl.textContent = viewModel.risk.level;
+    }
+
+    var freshnessCard = wrapper.querySelector('.bg-white.dark\\:bg-slate-900.border.border-slate-200.dark\\:border-slate-800.rounded-xl.shadow-sm.overflow-hidden');
+    if (freshnessCard) {
+      var sectionHeader = freshnessCard.querySelector('h3');
+      if (sectionHeader) {
+        sectionHeader.textContent = '数据线路新鲜度';
+      }
+      var tbody = freshnessCard.querySelector('tbody');
+      var thead = freshnessCard.querySelector('thead tr');
+      if (thead) {
+        thead.innerHTML = '<th class="px-5 py-3">数据线路</th><th class="px-5 py-3">最新日期</th><th class="px-5 py-3">同步状态</th><th class="px-5 py-3">说明</th><th class="px-5 py-3">标签</th>';
+      }
+      if (tbody) {
+        tbody.innerHTML = viewModel.freshnessRows.slice(0, 5).map(function (row) {
+          var palette = colorClasses(row.statusColor);
+          return [
+            '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">',
+            '<td class="px-5 py-3 font-semibold">', escapeHtml(row.name), '</td>',
+            '<td class="px-5 py-3">', escapeHtml(row.zone), '</td>',
+            '<td class="px-5 py-3">', escapeHtml(row.type), '</td>',
+            '<td class="px-5 py-3 font-bold ', palette.text, '">', escapeHtml(row.risk), '</td>',
+            '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.status), '</span></td>',
+            '</tr>'
+          ].join('');
+        }).join('');
+      }
+    }
+  }
+
+  function renderWarningCenter(viewModel) {
+    var section = document.getElementById('page-warning-center');
+    if (!section) {
+      return;
+    }
+    var wrapper = section.querySelector('.max-w-7xl');
+    if (!wrapper) {
+      return;
+    }
+    wrapper.classList.add('page-tight');
+
+    var summaryGrid = wrapper.querySelector('.grid.grid-cols-2.lg\\:grid-cols-4');
+    if (summaryGrid) {
+      var summaryCards = Array.prototype.slice.call(summaryGrid.children);
+      var items = [
+        { value: viewModel.alerts.total, label: '活跃预警', tone: 'text-slate-900' },
+        { value: viewModel.alerts.critical, label: '严重', tone: 'text-rose-600' },
+        { value: viewModel.alerts.high, label: '高风险', tone: 'text-amber-600' },
+        { value: viewModel.alerts.currentLines, label: '数据线路正常', tone: 'text-emerald-600' }
+      ];
+      summaryCards.forEach(function (card, index) {
+        var item = items[index];
+        if (!item) return;
+        card.className = 'mobile-section-card';
+        card.innerHTML = '<p class="text-2xl font-black ' + item.tone + '">' + escapeHtml(item.value) + '</p><p class="text-xs text-slate-500 mt-1">' + escapeHtml(item.label) + '</p>';
+      });
+    }
+
+    var tableShell = wrapper.querySelector('.bg-white.dark\\:bg-slate-900.border.border-slate-200.dark\\:border-slate-800.rounded-xl.shadow-sm.overflow-hidden');
+    if (!tableShell) {
+      return;
+    }
+
+    var mobileList = tableShell.querySelector('[data-warning-mobile-list]');
+    if (!mobileList) {
+      mobileList = document.createElement('div');
+      mobileList.setAttribute('data-warning-mobile-list', 'true');
+      mobileList.className = 'mobile-data-stack p-4 md:hidden';
+      tableShell.insertBefore(mobileList, tableShell.firstChild);
+    }
+
+    var tableWrap = tableShell.querySelector('.overflow-x-auto');
+    if (tableWrap) {
+      tableWrap.classList.add('hidden', 'md:block');
+    }
+
+    var tbody = tableShell.querySelector('tbody');
+    if (tbody) {
+      tbody.innerHTML = viewModel.alerts.rows.slice(0, 8).map(function (row) {
+        var palette = colorClasses(row.levelClass);
+        var statusPalette = colorClasses(row.statusClass);
+        return [
+          '<tr data-row-link="/warning-detail" class="hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer">',
+          '<td class="px-5 py-3 font-mono text-xs">', escapeHtml(row.id), '</td>',
+          '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.level), '</span></td>',
+          '<td class="px-5 py-3">', escapeHtml(row.indicator), '</td>',
+          '<td class="px-5 py-3">', escapeHtml(row.area), '</td>',
+          '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', statusPalette.chip, '">', escapeHtml(row.status), '</span></td>',
+          '<td class="px-5 py-3 text-xs text-slate-500">', escapeHtml(row.time), '</td>',
+          '</tr>'
+        ].join('');
+      }).join('');
+    }
+
+    mobileList.innerHTML = viewModel.alerts.rows.slice(0, 6).map(function (row) {
+      var palette = colorClasses(row.levelClass);
+      return [
+        '<article class="mobile-section-card">',
+        '<div class="flex items-start justify-between gap-3">',
+        '<div>',
+        '<p class="text-xs font-mono text-slate-400">', escapeHtml(row.id), '</p>',
+        '<h3 class="text-sm font-bold mt-1">', escapeHtml(row.indicator), '</h3>',
+        '</div>',
+        '<span class="px-2.5 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.level), '</span>',
+        '</div>',
+        '<p class="text-sm text-slate-500 mt-3">', escapeHtml(row.area), '</p>',
+        '<div class="mt-4 flex items-center justify-between text-xs text-slate-400">',
+        '<span>数据日期 ', escapeHtml(row.status), '</span>',
+        '<span>', escapeHtml(row.time), '</span>',
+        '</div>',
+        '</article>'
+      ].join('');
+    }).join('');
+  }
+
+  function createTrendPath(values, width, height, topPadding) {
+    if (!values.length) {
+      return '';
+    }
+    var min = Math.min.apply(Math, values);
+    var max = Math.max.apply(Math, values);
+    var span = Math.max(max - min, 1);
+    return values.map(function (value, index) {
+      var x = values.length === 1 ? 0 : (index / (values.length - 1)) * width;
+      var y = topPadding + (1 - ((value - min) / span)) * (height - topPadding * 2);
+      return (index === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join(' ');
+  }
+
+  function renderTrendPrediction(viewModel) {
+    var section = document.getElementById('page-trend-prediction');
+    if (!section) {
+      return;
+    }
+
+    var wrapper = section.querySelector('.max-w-7xl');
+    if (!wrapper) {
+      return;
+    }
+    wrapper.classList.add('page-tight');
+
+    var filterBar = wrapper.querySelector('.flex.flex-wrap.gap-3');
+    if (filterBar) {
+      filterBar.className = 'grid grid-cols-1 sm:grid-cols-3 gap-3';
+      Array.prototype.forEach.call(filterBar.children, function (child) {
+        child.classList.add('w-full');
+      });
+    }
+
+    var chartCard = wrapper.querySelector('.bg-white.dark\\:bg-slate-900.border.border-slate-200.dark\\:border-slate-800.rounded-xl.p-6.shadow-sm');
+    if (chartCard) {
+      var legend = chartCard.querySelector('.flex.gap-4.text-xs');
+      if (legend) {
+        legend.className = 'flex flex-wrap gap-3 text-xs text-slate-500';
+      }
+
+      var trendRows = ((viewModel.trends || {}).respiratory_card || []).slice().reverse();
+      var trendValues = trendRows.map(function (row) {
+        return Number(row.flu_count || 0);
+      });
+      var path = createTrendPath(trendValues, 600, 200, 24);
+      var latestProjection = viewModel.projections[0] ? Number(viewModel.projections[0].value || 0) : 0;
+      var extendedValues = trendValues.concat([latestProjection]);
+      var projectionPath = createTrendPath(extendedValues, 600, 200, 24);
+      var svg = chartCard.querySelector('svg');
+      if (svg) {
+        svg.innerHTML = [
+          '<path d="', path, '" stroke="#1a355b" stroke-width="3" fill="none" stroke-linecap="round"></path>',
+          '<path d="', projectionPath, '" stroke="#ef4444" stroke-width="3" stroke-dasharray="6" fill="none" stroke-linecap="round"></path>',
+          '<line x1="520" y1="0" x2="520" y2="200" stroke="#94a3b8" stroke-dasharray="4"></line>',
+          '<text x="528" y="18" font-size="10" fill="#94a3b8">预测</text>'
+        ].join('');
+      }
+    }
+
+    var statsGrid = wrapper.querySelector('.grid.grid-cols-1.md\\:grid-cols-3');
+    if (statsGrid) {
+      Array.prototype.slice.call(statsGrid.children).forEach(function (card, index) {
+        var item = viewModel.projections[index];
+        if (!item) return;
+        card.className = 'mobile-section-card';
+        card.innerHTML = [
+          '<p class="text-xs text-slate-500 uppercase font-bold">',
+          escapeHtml(item.label),
+          '</p>',
+          '<p class="text-2xl font-black mt-2">',
+          escapeHtml(item.value),
+          '</p>',
+          '<p class="text-xs font-bold mt-1 ',
+          item.delta.className,
+          '">',
+          escapeHtml(item.delta.text),
+          '</p>'
+        ].join('');
+      });
+    }
+  }
+
+  function renderDatasourcePage(viewModel) {
+    var section = document.getElementById('page-data-sources');
+    if (!section) {
+      return;
+    }
+
+    var infoTable = section.querySelector('table');
+    if (!infoTable) {
+      return;
+    }
+
+    var heading = section.querySelector('h1');
+    var subtitle = section.querySelector('p.text-slate-500');
+    if (heading) {
+      heading.textContent = '数据源与 Onboard 接入';
+    }
+    if (subtitle) {
+      subtitle.textContent = '当前前端已通过 AI_lab datasource 接口读取 ' + viewModel.meta.sourceLabel + ' 数据';
+    }
+  }
+
+  function showPages(path) {
+    document.querySelectorAll('.page-section').forEach(function (section) {
+      section.classList.add('hidden');
+    });
+    var pageId = routes[path];
+    var target = document.getElementById(pageId);
+    if (target) {
+      target.classList.remove('hidden');
+    }
+  }
+
+  async function router() {
+    var route = parseHashRoute();
+    var path = route.path;
+    var params = route.params;
+    var isLoggedIn = sessionStorage.getItem('loggedIn');
+
+    if (!isLoggedIn && !publicRoutes.includes(path)) {
+      navigate('/login');
+      return;
+    }
+    if (isLoggedIn && path === '/login') {
+      navigate('/dashboard', new URLSearchParams({ source: state.source }));
+      return;
+    }
+    if (!routes[path]) {
+      navigate('/dashboard', new URLSearchParams({ source: state.source }));
+      return;
+    }
+
+    getDatasourceSource(params);
+    applyChrome(path);
+    showPages(path);
+    updateSidebarActive(path);
+    updateMobileNavigation(path);
+    updateTopbarUser();
+
+    if (liveRoutes.indexOf(path) >= 0) {
+      await ensureDashboardData(false);
+    }
+  }
+
   function initEvents() {
-    document.addEventListener('click', function (e) {
-      var el = e.target.closest('[data-action]');
-      if (!el) {
-        // nav links
-        var navLink = e.target.closest('[data-nav-link]');
-        if (navLink) {
-          e.preventDefault();
-          navigate('#' + navLink.getAttribute('data-nav-link'));
-          return;
+    document.addEventListener('click', function (event) {
+      var actionEl = event.target.closest('[data-action]');
+      if (actionEl) {
+        var action = actionEl.getAttribute('data-action');
+        switch (action) {
+          case 'login':
+            sessionStorage.setItem('loggedIn', 'true');
+            navigate('/dashboard', new URLSearchParams({ source: state.source }));
+            return;
+          case 'logout':
+            sessionStorage.removeItem('loggedIn');
+            navigate('/login');
+            return;
+          case 'export':
+          case 'download':
+            showReportModal();
+            return;
+          case 'close-modal':
+            hideReportModal();
+            return;
+          case 'download-report':
+            downloadReport();
+            return;
+          case 'toggle-dark':
+            document.documentElement.classList.toggle('dark');
+            return;
+          default:
+            showToast(action + ' - 功能演示');
+            return;
         }
-        // row links
-        var rowLink = e.target.closest('[data-row-link]');
-        if (rowLink) {
-          navigate('#' + rowLink.getAttribute('data-row-link'));
-          return;
-        }
-        // breadcrumb
-        var bc = e.target.closest('[data-breadcrumb]');
-        if (bc) {
-          e.preventDefault();
-          navigate('#' + bc.getAttribute('data-breadcrumb'));
-          return;
-        }
-        // filter buttons
-        var fb = e.target.closest('[data-filter-btn]');
-        if (fb) {
-          var parent = fb.parentElement;
-          if (parent) {
-            parent.querySelectorAll('[data-filter-btn]').forEach(function (b) {
-              b.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800';
-            });
-            fb.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white';
-          }
-          return;
-        }
-        // page buttons
-        var pb = e.target.closest('[data-page-btn]');
-        if (pb) {
-          var pg = pb.parentElement;
-          if (pg) {
-            pg.querySelectorAll('[data-page-btn]').forEach(function (b) {
-              b.className = 'size-7 flex items-center justify-center rounded border border-slate-200 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs hover:bg-slate-50';
-            });
-            pb.className = 'size-7 flex items-center justify-center rounded border border-primary bg-primary text-white text-xs font-bold';
-          }
-          return;
-        }
-        // close modal on backdrop click
-        if (e.target.id === 'report-modal') {
-          hideReportModal();
+      }
+
+      var navLink = event.target.closest('[data-nav-link]');
+      if (navLink) {
+        event.preventDefault();
+        navigate(navLink.getAttribute('data-nav-link'), new URLSearchParams({ source: state.source }));
+        return;
+      }
+
+      var mobileNav = event.target.closest('[data-mobile-nav]');
+      if (mobileNav) {
+        event.preventDefault();
+        navigate(mobileNav.getAttribute('data-mobile-nav'), new URLSearchParams({ source: state.source }));
+        return;
+      }
+
+      var rowLink = event.target.closest('[data-row-link]');
+      if (rowLink) {
+        navigate(rowLink.getAttribute('data-row-link'), new URLSearchParams({ source: state.source }));
+        return;
+      }
+
+      var breadcrumb = event.target.closest('[data-breadcrumb]');
+      if (breadcrumb) {
+        event.preventDefault();
+        navigate(breadcrumb.getAttribute('data-breadcrumb'), new URLSearchParams({ source: state.source }));
+        return;
+      }
+
+      var filterButton = event.target.closest('[data-filter-btn]');
+      if (filterButton) {
+        var parent = filterButton.parentElement;
+        if (parent) {
+          parent.querySelectorAll('[data-filter-btn]').forEach(function (button) {
+            button.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400';
+          });
+          filterButton.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white';
         }
         return;
       }
 
-      var action = el.getAttribute('data-action');
-      switch (action) {
-        case 'login':
-          handleLogin(e);
-          break;
-        case 'logout':
-          handleLogout();
-          break;
-        case 'export':
-        case 'download':
-          showReportModal();
-          break;
-        case 'close-modal':
-          hideReportModal();
-          break;
-        case 'download-report':
-          downloadReport();
-          break;
-        case 'toggle-dark':
-          document.documentElement.classList.toggle('dark');
-          break;
-        default:
-          showToast(action + ' - 功能演示');
+      var pageButton = event.target.closest('[data-page-btn]');
+      if (pageButton) {
+        var container = pageButton.parentElement;
+        if (container) {
+          container.querySelectorAll('[data-page-btn]').forEach(function (button) {
+            button.className = 'size-7 flex items-center justify-center rounded border border-slate-200 bg-white dark:bg-slate-800 text-slate-600 text-xs';
+          });
+          pageButton.className = 'size-7 flex items-center justify-center rounded border border-primary bg-primary text-white text-xs font-bold';
+        }
+        return;
+      }
+
+      if (event.target.id === 'report-modal') {
+        hideReportModal();
       }
     });
   }
 
-  // Init
   function init() {
+    ensureEnhancementStyles();
+    ensureMobileNavigation();
     initEvents();
     window.addEventListener('hashchange', router);
     router();
