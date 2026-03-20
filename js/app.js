@@ -33,7 +33,7 @@
   };
 
   function parseHashRoute() {
-    var rawHash = window.location.hash.slice(1) || '/login';
+    var rawHash = window.location.hash.slice(1) || '/dashboard';
     var parts = rawHash.split('?');
     var path = parts[0] || '/login';
     var params = new URLSearchParams(parts[1] || '');
@@ -680,6 +680,11 @@
     var path = route.path;
     var params = route.params;
     var isLoggedIn = sessionStorage.getItem('loggedIn');
+
+    if (!isLoggedIn && path !== '/login') {
+      sessionStorage.setItem('loggedIn', 'trial');
+      isLoggedIn = 'trial';
+    }
 
     if (!isLoggedIn && !publicRoutes.includes(path)) {
       navigate('/login');
