@@ -157,6 +157,53 @@
     }, 2400);
   }
 
+  function firstPresent(values) {
+    for (var index = 0; index < values.length; index += 1) {
+      if (values[index]) {
+        return values[index];
+      }
+    }
+    return '';
+  }
+
+  function summarizeOperationPayload(payload) {
+    var source = payload && typeof payload === 'object'
+      ? (payload.result && typeof payload.result === 'object' ? payload.result : payload)
+      : {};
+    var summary = [];
+    [
+      ['status', source.status],
+      ['data date', source.data_date || source.report_date],
+      ['indicators', source.indicator_count],
+      ['observations', source.observation_count],
+      ['series', source.series_count],
+      ['alerts', source.alert_count],
+      ['rules', source.rule_count]
+    ].forEach(function (item) {
+      if (item[1] != null && item[1] !== '') {
+        summary.push(item);
+      }
+    });
+    return summary;
+  }
+
+  function buildRuleGroups(rules) {
+    var groups = {};
+    rules.forEach(function (item) {
+      var key = item.series_name || item.indicator_key || 'ungrouped';
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(item);
+    });
+    return Object.keys(groups).sort().map(function (key) {
+      return {
+        name: key,
+        items: groups[key]
+      };
+    });
+  }
+
   function showReportModal() {
     var modal = document.getElementById('report-modal');
     var contentEl = document.getElementById('report-modal-content');
@@ -1102,6 +1149,39 @@
         }).join('');
       }
     }
+
+    var liveOnlyBlock = section.querySelector('.grid.grid-cols-1.lg\\:grid-cols-3.gap-6');
+    if (liveOnlyBlock) {
+      liveOnlyBlock.className = 'grid grid-cols-1 gap-6';
+      liveOnlyBlock.innerHTML = [
+        '<div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-6 space-y-4">',
+        '<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">',
+        '<div>',
+        '<h3 class="font-bold flex items-center gap-2"><span class="material-symbols-outlined text-primary">hub</span>AI_lab 管道视图</h3>',
+        '<p class="text-sm text-slate-500 mt-1">当前页面只显示 live datasource runtime、freshness 和公开输出状态，不再混入 mock 或 demo 运维面板。</p>',
+        '</div>',
+        '<a href="#/ai-lab-status?source=', escapeHtml(state.source), '" class="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline">',
+        '<span class="material-symbols-outlined text-base">open_in_new</span>',
+        '打开 AI_lab Console',
+        '</a>',
+        '</div>',
+        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">',
+        '<div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+        '<p class="text-xs font-bold uppercase tracking-wide text-slate-500">Live scope</p>',
+        '<p class="mt-2 text-sm text-slate-700 dark:text-slate-300">Datasource runtime、schema、freshness 和公开输出都以 AI_lab live API 为准。</p>',
+        '</div>',
+        '<div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+        '<p class="text-xs font-bold uppercase tracking-wide text-slate-500">Operator actions</p>',
+        '<p class="mt-2 text-sm text-slate-700 dark:text-slate-300">Onboard、sync、promote、rules、history 统一收敛到 AI_lab Console，不在这里放假日志或占位告警。</p>',
+        '</div>',
+        '<div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+        '<p class="text-xs font-bold uppercase tracking-wide text-slate-500">Review gate</p>',
+        '<p class="mt-2 text-sm text-slate-700 dark:text-slate-300">公开页只保留真实运行态。任何调试样例、模拟吞吐和静态告警都不再出现在 live 站点。</p>',
+        '</div>',
+        '</div>',
+        '</div>'
+      ].join('');
+    }
   }
 
   function renderAiLabStatusPage(viewModel) {
@@ -1131,6 +1211,18 @@
     var stateStore = syncStatus.state_store || {};
     var cacheStatus = syncStatus.cache || {};
     var lastOperation = history.length ? history[0] : null;
+    var lastSyncOperation = history.find(function (item) {
+      return item && item.operation === 'sync';
+    }) || null;
+    var recentSyncAt = firstPresent([
+      syncStatus.synced_at,
+      cacheStatus.last_sync,
+      stateStore.synced_at,
+      lastSyncOperation && (lastSyncOperation.finished_at || lastSyncOperation.created_at)
+    ]);
+    if (!syncStatus.synced_at && recentSyncAt) {
+      syncStatus.synced_at = recentSyncAt;
+    }
     var ruleIndex = {};
 
     rules.forEach(function (item) {
@@ -1183,6 +1275,10 @@
         pipelineBody.innerHTML = operationItems.map(function (item) {
           var tone = item.status === 'error' ? 'rose' : item.operation === 'promote' ? 'amber' : item.operation === 'sync' ? 'blue' : 'emerald';
           var palette = colorClasses(tone);
+          var summaryItems = summarizeOperationPayload(item.payload || {});
+          var summaryHtml = summaryItems.length ? summaryItems.map(function (entry) {
+            return '<span class="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">' + escapeHtml(entry[0]) + ': ' + escapeHtml(String(entry[1])) + '</span>';
+          }).join('') : '<span class="text-slate-400">No structured payload summary</span>';
           return [
             '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
             '<div class="flex items-center justify-between gap-3">',
@@ -1195,7 +1291,8 @@
             '<span>started: ', escapeHtml(formatDate(item.created_at || '--')), '</span>',
             '<span>finished: ', escapeHtml(formatDate(item.finished_at || '--')), '</span>',
             '</div>',
-            '<pre class="mt-3 text-xs whitespace-pre-wrap break-all text-slate-600 dark:text-slate-300">', escapeHtml(JSON.stringify(item.payload || {}, null, 2)), '</pre>',
+            '<div class="mt-3 flex flex-wrap gap-2 text-xs">', summaryHtml, '</div>',
+            '<details class="mt-3 text-xs text-slate-500"><summary class="cursor-pointer font-medium">Payload</summary><pre class="mt-2 whitespace-pre-wrap break-all text-slate-600 dark:text-slate-300">', escapeHtml(JSON.stringify(item.payload || {}, null, 2)), '</pre></details>',
             '</article>'
           ].join('');
         }).join('');
@@ -1291,21 +1388,39 @@
     }
 
     if (outputBox) {
-      var ruleHtml = rules.length ? rules.map(function (item) {
-        var palette = colorClasses(item.is_active ? 'emerald' : 'blue');
+      var ruleGroups = buildRuleGroups(rules);
+      var ruleHtml = ruleGroups.length ? ruleGroups.map(function (group) {
+        var activeCount = group.items.filter(function (item) {
+          return !!item.is_active;
+        }).length;
+        var severityList = Array.from(new Set(group.items.map(function (item) {
+          return item.severity || 'info';
+        })));
         return [
           '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
           '<div class="flex items-start justify-between gap-3">',
           '<div>',
-          '<p class="text-sm font-bold">', escapeHtml(item.series_name || item.indicator_key || 'rule'), '</p>',
-          '<p class="text-xs text-slate-500 mt-1">', escapeHtml((item.metric || '--') + ' ' + (item.operator || '--') + ' ' + String(item.threshold == null ? '--' : item.threshold)), '</p>',
+          '<p class="text-sm font-bold">', escapeHtml(group.name), '</p>',
+          '<p class="text-xs text-slate-500 mt-1">', escapeHtml(String(activeCount) + '/' + String(group.items.length) + ' active · ' + severityList.join(', ')), '</p>',
           '</div>',
-          '<span class="px-2 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(item.severity || 'info'), '</span>',
+          '<span class="px-2 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">', escapeHtml(String(group.items.length)), ' rules</span>',
           '</div>',
-          '<div class="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">',
-          '<span>indicator: ', escapeHtml(item.indicator_key || '--'), '</span>',
-          '<span>active: ', escapeHtml(String(!!item.is_active)), '</span>',
-          '<span>rule_id: ', escapeHtml(item.id || '--'), '</span>',
+          '<div class="mt-3 space-y-2">',
+          group.items.map(function (item) {
+            var palette = colorClasses(item.is_active ? 'emerald' : 'blue');
+            return [
+              '<div class="rounded-lg border border-slate-100 dark:border-slate-800 px-3 py-2">',
+              '<div class="flex items-center justify-between gap-3">',
+              '<span class="text-xs font-bold text-slate-700 dark:text-slate-200">', escapeHtml((item.metric || '--') + ' ' + (item.operator || '--') + ' ' + String(item.threshold == null ? '--' : item.threshold)), '</span>',
+              '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold ', palette.chip, '">', escapeHtml(item.severity || 'info'), '</span>',
+              '</div>',
+              '<div class="mt-1 flex flex-wrap gap-3 text-[11px] text-slate-400">',
+              '<span>indicator: ', escapeHtml(item.indicator_key || '--'), '</span>',
+              '<span>active: ', escapeHtml(String(!!item.is_active)), '</span>',
+              '</div>',
+              '</div>'
+            ].join('');
+          }).join(''),
           '</div>',
           '</article>'
         ].join('');
@@ -1329,7 +1444,7 @@
           '<span>rule: ', escapeHtml(ruleContext), '</span>',
           '<span>indicator: ', escapeHtml(item.indicator_key || '--'), '</span>',
           '<span>status: ', escapeHtml(item.status || 'new'), ' | triggered: ', escapeHtml(item.triggered_value == null ? '--' : item.triggered_value), '</span>',
-          '<span>rule_id: ', escapeHtml(item.rule_id || '--'), ' | created: ', escapeHtml(formatDate(item.created_at || item.report_date || '--')), '</span>',
+          '<span>created: ', escapeHtml(formatDate(item.created_at || item.report_date || '--')), '</span>',
           '</div>',
           '</article>'
         ].join('');
