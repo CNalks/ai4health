@@ -1,5 +1,6 @@
 {
   "name": "ai4health",
+  "outputDirectory": ".",
   "rewrites": [
     {
       "source": "/api/*",
@@ -12,7 +13,7 @@
   ],
   "headers": [
     {
-      "source": "/js/(.*)",
+      "source": "/js/*",
       "headers": [
         {
           "key": "Cache-Control",
@@ -21,7 +22,7 @@
       ]
     },
     {
-      "source": "/(.*)",
+      "source": "/*",
       "headers": [
         {
           "key": "Cache-Control",
