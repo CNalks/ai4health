@@ -1,0 +1,33 @@
+{
+  "name": "ai4health",
+  "rewrites": [
+    {
+      "source": "/api/*",
+      "destination": "http://1.13.141.254/api/:splat"
+    },
+    {
+      "source": "/health",
+      "destination": "http://1.13.141.254/health"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/js/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "max-age=300"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "max-age=60"
+        }
+      ]
+    }
+  ]
+}
