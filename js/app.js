@@ -436,16 +436,22 @@
       window.AI4HApi.fetchDatasourceSyncStatus(slug),
       window.AI4HApi.fetchDatasourceAlerts(slug, 8),
       window.AI4HApi.fetchDatasourceRules(slug, false),
-      window.AI4HApi.fetchDatasourceHistory(slug, 10),
-      window.AI4HApi.fetchDatasourceIndicators(slug).catch(function () {
-        return [];
-      })
+      window.AI4HApi.fetchDatasourceHistory(slug, 10)
     ]);
-    state.console.syncStatus = detailResults[0];
+    var syncStatus = detailResults[0] || {};
+    var stateStore = syncStatus.state_store || {};
+    var shouldFetchIndicators = Number(stateStore.indicator_count || 0) > 0 || !!syncStatus.data_date;
+    var indicators = [];
+    if (shouldFetchIndicators) {
+      indicators = await window.AI4HApi.fetchDatasourceIndicators(slug).catch(function () {
+        return [];
+      });
+    }
+    state.console.syncStatus = syncStatus;
     state.console.alerts = detailResults[1];
     state.console.rules = detailResults[2];
     state.console.history = detailResults[3];
-    state.console.indicators = detailResults[4];
+    state.console.indicators = indicators;
   }
 
   async function loadConsoleData(force) {
@@ -1106,6 +1112,7 @@
 
     var runtimeGrid = document.getElementById('ai-lab-status-runtime');
     var pipelineBody = document.getElementById('ai-lab-status-pipeline');
+    var indicatorBox = document.getElementById('ai-lab-console-indicators');
     var metaBox = document.getElementById('ai-lab-status-meta');
     var outputBox = document.getElementById('ai-lab-status-output');
     var consoleStatus = document.getElementById('ai-lab-console-status');
@@ -1120,6 +1127,7 @@
     var rules = state.console.rules || [];
     var history = state.console.history || [];
     var indicators = state.console.indicators || [];
+    var projections = Array.isArray(viewModel.projections) ? viewModel.projections : [];
     var stateStore = syncStatus.state_store || {};
     var cacheStatus = syncStatus.cache || {};
     var lastOperation = history.length ? history[0] : null;
@@ -1192,6 +1200,50 @@
           ].join('');
         }).join('');
       }
+    }
+
+    if (indicatorBox) {
+      var indicatorHtml = indicators.length ? indicators.map(function (item) {
+        var latest = item.latest_observation || {};
+        var latestValue = latest.value == null ? '--' : String(latest.value) + (item.unit ? (' ' + item.unit) : '');
+        return [
+          '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+          '<div class="flex items-start justify-between gap-3">',
+          '<div>',
+          '<p class="text-sm font-bold">', escapeHtml(item.label || item.indicator_key || '--'), '</p>',
+          '<p class="text-xs text-slate-500 mt-1">', escapeHtml(item.indicator_key || '--'), '</p>',
+          '</div>',
+          '<span class="text-xs font-bold text-slate-400">', escapeHtml(item.frequency || '--'), '</span>',
+          '</div>',
+          '<div class="mt-3 grid grid-cols-2 gap-3 text-xs text-slate-500">',
+          '<div><p class="uppercase tracking-wide text-slate-400">Latest value</p><p class="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">', escapeHtml(latestValue), '</p></div>',
+          '<div><p class="uppercase tracking-wide text-slate-400">Observed at</p><p class="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">', escapeHtml(formatDate(latest.observed_at || '--')), '</p></div>',
+          '<div><p class="uppercase tracking-wide text-slate-400">Observations</p><p class="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">', escapeHtml(String(item.observation_count || 0)), '</p></div>',
+          '<div><p class="uppercase tracking-wide text-slate-400">Unit</p><p class="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">', escapeHtml(item.unit || '--'), '</p></div>',
+          '</div>',
+          '</article>'
+        ].join('');
+      }).join('') : '<div class="text-sm text-slate-500">No indicators available for the current datasource.</div>';
+
+      var projectionHtml = projections.length ? projections.map(function (item) {
+        return [
+          '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+          '<div class="flex items-start justify-between gap-3">',
+          '<div>',
+          '<p class="text-sm font-bold">', escapeHtml(item.label || '--'), '</p>',
+          '<p class="text-xs text-slate-500 mt-1">method: ', escapeHtml(item.method || '--'), '</p>',
+          '</div>',
+          '<span class="text-sm font-black text-slate-900 dark:text-slate-100">', escapeHtml(String(item.value == null ? '--' : item.value)), '</span>',
+          '</div>',
+          '<p class="mt-3 text-xs font-bold ', escapeHtml((item.delta && item.delta.className) || 'text-slate-500'), '">', escapeHtml((item.delta && item.delta.text) || '--'), '</p>',
+          '</article>'
+        ].join('');
+      }).join('') : '<div class="text-sm text-slate-500">No forecast outputs available for the current datasource.</div>';
+
+      indicatorBox.innerHTML = [
+        '<div><p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Indicators</p>', indicatorHtml, '</div>',
+        '<div><p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Forecast outputs</p>', projectionHtml, '</div>'
+      ].join('');
     }
 
     if (metaBox) {
