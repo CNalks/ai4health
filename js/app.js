@@ -265,12 +265,13 @@
     style.textContent = [
       '.mobile-bottom-nav{box-shadow:0 -10px 30px rgba(15,23,42,.08);backdrop-filter:blur(12px);}',
       '.mobile-nav-link.active{color:#1a355b;background:rgba(26,53,91,.08);}',
+      '.mobile-menu-sheet{box-shadow:0 -20px 60px rgba(15,23,42,.22);}',
+      '.mobile-menu-link.active{border-color:rgba(26,53,91,.25);background:rgba(26,53,91,.08);color:#1a355b;}',
       '.trial-banner{background:linear-gradient(135deg,#eff6ff 0%,#ffffff 100%);border:1px solid rgba(59,130,246,.18);}',
       '.dark .trial-banner{background:linear-gradient(135deg,rgba(30,41,59,.9) 0%,rgba(15,23,42,.94) 100%);border-color:rgba(148,163,184,.18);}',
       '.pulse-dot{animation:pulse-dot 1.8s ease-in-out infinite;}',
       '@keyframes pulse-dot{0%{transform:scale(.92);opacity:.6;}50%{transform:scale(1.15);opacity:1;}100%{transform:scale(.92);opacity:.6;}}',
-      '.kpi-strip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:.25rem;margin-left:-.25rem;margin-right:-.25rem;padding-left:.25rem;padding-right:.25rem;}',
-      '.kpi-strip > article{min-width:76vw;scroll-snap-align:center;}',
+      '.kpi-strip{display:grid;grid-template-columns:minmax(0,1fr);gap:1rem;}',
       '.kpi-card{position:relative;overflow:hidden;}',
       '.kpi-card::before{content:"";position:absolute;inset:.75rem auto .75rem .75rem;width:4px;border-radius:999px;background:#1a355b;opacity:.95;}',
       '.mobile-section-card{border:1px solid rgb(226 232 240);border-radius:1rem;background:rgba(255,255,255,.96);padding:1rem;box-shadow:0 10px 25px rgba(15,23,42,.06);}',
@@ -278,8 +279,10 @@
       '.mobile-data-stack{display:grid;gap:.75rem;}',
       '.loading-shell{opacity:.55;pointer-events:none;filter:saturate(.6);}',
       '.source-pill{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .7rem;border-radius:999px;font-size:.75rem;font-weight:700;}',
-      '@media (min-width:768px){.kpi-strip{display:grid;overflow:visible;padding:0;margin:0;scroll-snap-type:none;}.kpi-strip > article{min-width:0;}.mobile-only{display:none !important;}}',
-      '@media (max-width:767px){body{padding-bottom:5.5rem;}.desktop-only{display:none !important;}.page-tight{padding:1rem;}.compact-title{font-size:1.375rem;line-height:1.2;}.compact-subtitle{font-size:.85rem;line-height:1.45;}}'
+      '@media (min-width:640px){.kpi-strip{grid-template-columns:repeat(2,minmax(0,1fr));}}',
+      '@media (min-width:1024px){.kpi-strip{grid-template-columns:repeat(4,minmax(0,1fr));}}',
+      '@media (min-width:768px){.mobile-only{display:none !important;}}',
+      '@media (max-width:767px){body{padding-bottom:calc(5.5rem + env(safe-area-inset-bottom, 0px));}.mobile-bottom-nav{padding-bottom:calc(.5rem + env(safe-area-inset-bottom, 0px));}.mobile-menu-sheet{padding-bottom:calc(2rem + env(safe-area-inset-bottom, 0px));}.desktop-only{display:none !important;}.page-tight{padding:1rem;}.compact-title{font-size:1.375rem;line-height:1.2;}.compact-subtitle{font-size:.85rem;line-height:1.45;}}'
     ].join('');
     document.head.appendChild(style);
   }
@@ -298,10 +301,11 @@
       createMobileNavLink('/warning-center', 'warning', '预警'),
       createMobileNavLink('/trend-prediction', 'trending_up', '趋势'),
       createMobileNavLink('/data-sources', 'database', '数据'),
-      createMobileNavLink('/system-admin', 'tune', '更多'),
+      createMobileActionButton('toggle-mobile-menu', 'menu', '菜单'),
       '</div>'
     ].join('');
     document.body.appendChild(nav);
+    ensureMobileMenuSheet();
   }
 
   function createMobileNavLink(path, icon, label) {
@@ -318,6 +322,72 @@
     ].join('');
   }
 
+  function createMobileActionButton(action, icon, label) {
+    return [
+      '<button type="button" class="mobile-nav-link flex flex-col items-center justify-center rounded-2xl px-2 py-2 text-[11px] font-medium text-slate-500 dark:text-slate-300" data-action="',
+      action,
+      '">',
+      '<span class="material-symbols-outlined text-[20px] leading-none">',
+      icon,
+      '</span>',
+      '<span class="mt-1">',
+      label,
+      '</span></button>'
+    ].join('');
+  }
+
+  function createMobileMenuLink(path, icon, label) {
+    return [
+      '<button type="button" class="mobile-menu-link flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-left text-sm font-medium text-slate-700 dark:text-slate-200" data-mobile-menu-nav="',
+      path,
+      '">',
+      '<span class="material-symbols-outlined text-[20px] text-primary">',
+      icon,
+      '</span>',
+      '<span>',
+      label,
+      '</span></button>'
+    ].join('');
+  }
+
+  function ensureMobileMenuSheet() {
+    if (document.getElementById('mobile-menu-sheet')) {
+      return;
+    }
+
+    var sheet = document.createElement('div');
+    sheet.id = 'mobile-menu-sheet';
+    sheet.className = 'mobile-only fixed inset-0 z-50 hidden md:hidden';
+    sheet.innerHTML = [
+      '<div class="absolute inset-0 bg-slate-950/40" data-action="close-mobile-menu"></div>',
+      '<div class="mobile-menu-sheet absolute inset-x-0 bottom-0 rounded-t-[28px] border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-4 pb-8 pt-4">',
+      '<div class="mx-auto h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700"></div>',
+      '<div class="mt-4 flex items-center justify-between">',
+      '<div><p class="text-xs font-bold uppercase tracking-wide text-slate-500">Mobile Menu</p><h3 class="text-lg font-bold">Operator Routes</h3></div>',
+      '<button type="button" class="rounded-full p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800" data-action="close-mobile-menu"><span class="material-symbols-outlined text-[20px]">close</span></button>',
+      '</div>',
+      '<div class="mt-4 grid grid-cols-1 gap-3">',
+      createMobileMenuLink('/ai-lab-status', 'memory', 'AI_lab Console'),
+      createMobileMenuLink('/command-map', 'map', '指挥地图'),
+      createMobileMenuLink('/task-center', 'task_alt', '任务中心'),
+      createMobileMenuLink('/data-quality', 'query_stats', '数据质量'),
+      createMobileMenuLink('/model-center', 'model_training', '模型中心'),
+      createMobileMenuLink('/system-admin', 'admin_panel_settings', '系统管理'),
+      '</div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(sheet);
+  }
+
+  function setMobileMenuOpen(isOpen) {
+    var sheet = document.getElementById('mobile-menu-sheet');
+    if (!sheet) {
+      return;
+    }
+    sheet.classList.toggle('hidden', !isOpen);
+    document.body.classList.toggle('overflow-hidden', !!isOpen);
+  }
+
   function updateMobileNavigation(path) {
     document.querySelectorAll('[data-mobile-nav]').forEach(function (button) {
       if (button.getAttribute('data-mobile-nav') === path) {
@@ -326,12 +396,22 @@
         button.classList.remove('active');
       }
     });
+    document.querySelectorAll('[data-mobile-menu-nav]').forEach(function (button) {
+      if (button.getAttribute('data-mobile-menu-nav') === path) {
+        button.classList.add('active');
+      } else {
+        button.classList.remove('active');
+      }
+    });
+    setMobileMenuOpen(false);
   }
 
   function applyChrome(path) {
     var topbar = document.getElementById('app-topbar');
     var sidebar = document.getElementById('app-sidebar');
     var mainContent = document.getElementById('main-content');
+    var mobileBottomNav = document.getElementById('mobile-bottom-nav');
+    var mobileMenuSheet = document.getElementById('mobile-menu-sheet');
     if (!topbar || !sidebar || !mainContent) {
       return;
     }
@@ -340,12 +420,15 @@
       topbar.className = 'hidden';
       sidebar.className = 'hidden';
       mainContent.className = 'flex-1';
+      if (mobileBottomNav) mobileBottomNav.classList.add('hidden');
+      if (mobileMenuSheet) mobileMenuSheet.classList.add('hidden');
       return;
     }
 
     topbar.className = 'sticky top-0 z-30 h-14 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex items-center justify-between px-4 md:px-6 shrink-0';
     sidebar.className = 'hidden md:flex w-60 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col shrink-0';
     mainContent.className = 'flex-1 overflow-y-auto';
+    if (mobileBottomNav) mobileBottomNav.classList.remove('hidden');
   }
 
   function updateSidebarActive(path) {
@@ -786,7 +869,7 @@
 
     var kpiGrid = wrapper.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4');
     if (kpiGrid) {
-      kpiGrid.className = 'kpi-strip md:grid md:grid-cols-2 lg:grid-cols-4 gap-4';
+      kpiGrid.className = 'kpi-strip';
       var cards = Array.prototype.slice.call(kpiGrid.children);
       cards.forEach(function (card, index) {
         var item = viewModel.dashboardCards[index];
@@ -1539,6 +1622,12 @@
           case 'toggle-dark':
             document.documentElement.classList.toggle('dark');
             return;
+          case 'toggle-mobile-menu':
+            setMobileMenuOpen(true);
+            return;
+          case 'close-mobile-menu':
+            setMobileMenuOpen(false);
+            return;
           case 'ai-lab-save-api-key':
             var apiKeyInput = document.getElementById('ai-lab-console-api-key');
             window.AI4HApi.setApiKey(apiKeyInput ? apiKeyInput.value : '');
@@ -1591,6 +1680,14 @@
       if (mobileNav) {
         event.preventDefault();
         navigate(mobileNav.getAttribute('data-mobile-nav'), new URLSearchParams({ source: state.source }));
+        return;
+      }
+
+      var mobileMenuNav = event.target.closest('[data-mobile-menu-nav]');
+      if (mobileMenuNav) {
+        event.preventDefault();
+        setMobileMenuOpen(false);
+        navigate(mobileMenuNav.getAttribute('data-mobile-menu-nav'), new URLSearchParams({ source: state.source }));
         return;
       }
 
