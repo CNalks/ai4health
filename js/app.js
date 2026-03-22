@@ -18,17 +18,19 @@
     '/data-sources': 'page-data-sources',
     '/data-quality': 'page-data-quality',
     '/model-center': 'page-model-center',
+    '/ai-lab-status': 'page-ai-lab-status',
     '/event-center': 'page-event-center',
     '/system-admin': 'page-system-admin'
   };
 
   var publicRoutes = ['/login'];
-  var liveRoutes = ['/dashboard', '/warning-center', '/trend-prediction'];
+  var liveRoutes = ['/dashboard', '/warning-center', '/trend-prediction', '/data-sources', '/ai-lab-status'];
   var state = {
     source: window.APP_CONFIG.defaultSource,
     dashboard: null,
     dashboardPromise: null,
     dashboardStatus: 'idle',
+    runtimeHealth: null,
     errorMessage: ''
   };
 
@@ -66,6 +68,28 @@
       return '--';
     }
     return String(value).replace('T', ' ').replace(/\.\d+Z$/, 'Z');
+  }
+
+  function formatRelativeTime(value) {
+    if (!value) {
+      return '--';
+    }
+    var timestamp = new Date(value).getTime();
+    if (!Number.isFinite(timestamp)) {
+      return formatDate(value);
+    }
+    var diffMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+    if (diffMinutes < 1) {
+      return '刚刚';
+    }
+    if (diffMinutes < 60) {
+      return diffMinutes + ' 分钟前';
+    }
+    var diffHours = Math.round(diffMinutes / 60);
+    if (diffHours < 24) {
+      return diffHours + ' 小时前';
+    }
+    return formatDate(value);
   }
 
   function colorClasses(name) {
@@ -287,6 +311,48 @@
     }
   }
 
+  function getRuntimeState(viewModel) {
+    if (state.runtimeHealth && state.runtimeHealth.online === false) {
+      return {
+        label: 'AI_lab 离线',
+        dotClass: 'bg-rose-500',
+        chipClass: 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900/30 dark:bg-rose-900/20 dark:text-rose-300'
+      };
+    }
+    if (viewModel && viewModel.meta && viewModel.meta.isLive) {
+      return {
+        label: 'AI_lab 在线',
+        dotClass: 'bg-emerald-500',
+        chipClass: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-300'
+      };
+    }
+    if (viewModel) {
+      return {
+        label: 'AI_lab 演示回退',
+        dotClass: 'bg-amber-500',
+        chipClass: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/30 dark:bg-amber-900/20 dark:text-amber-300'
+      };
+    }
+    return {
+      label: 'AI_lab 检查中',
+      dotClass: 'bg-slate-400',
+      chipClass: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
+    };
+  }
+
+  function updateTopbarRuntime(viewModel) {
+    var button = document.getElementById('topbar-ai-lab-status');
+    var dot = document.getElementById('topbar-ai-lab-dot');
+    var label = document.getElementById('topbar-ai-lab-label');
+    if (!button || !dot || !label) {
+      return;
+    }
+    var runtimeState = getRuntimeState(viewModel || state.dashboard);
+    button.className = 'hidden sm:flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ' + runtimeState.chipClass;
+    dot.className = 'size-2 rounded-full ' + runtimeState.dotClass;
+    label.textContent = runtimeState.label;
+  }
+
   function getDatasourceSource(params) {
     var nextSource = params.get('source') || state.source || window.APP_CONFIG.defaultSource;
     state.source = nextSource;
@@ -294,7 +360,7 @@
   }
 
   function setLoadingState(isLoading) {
-    ['/dashboard', '/warning-center', '/trend-prediction'].forEach(function (path) {
+    ['/dashboard', '/warning-center', '/trend-prediction', '/data-sources', '/ai-lab-status'].forEach(function (path) {
       var section = document.getElementById(routes[path]);
       if (section) {
         section.classList.toggle('loading-shell', isLoading);
@@ -313,8 +379,9 @@
     state.dashboardStatus = 'loading';
     state.errorMessage = '';
     setLoadingState(true);
+    updateTopbarRuntime();
 
-    state.dashboardPromise = window.AI4HApi.fetchDashboard(state.source, window.APP_CONFIG.dashboardLimit)
+    var dashboardTask = window.AI4HApi.fetchDashboard(state.source, window.APP_CONFIG.dashboardLimit)
       .then(function (payload) {
         state.dashboard = payload;
         state.dashboardStatus = 'ready';
@@ -327,7 +394,25 @@
         state.errorMessage = error && error.message ? error.message : '无法连接 AI_lab';
         renderLiveSections();
         return state.dashboard;
+      });
+
+    var healthTask = window.AI4HApi.fetchHealth()
+      .then(function (payload) {
+        state.runtimeHealth = payload;
+        updateTopbarRuntime();
+        return payload;
       })
+      .catch(function () {
+        state.runtimeHealth = {
+          online: false,
+          service: 'AI_lab',
+          checkedAt: new Date().toISOString()
+        };
+        updateTopbarRuntime();
+        return state.runtimeHealth;
+      });
+
+    state.dashboardPromise = Promise.all([dashboardTask, healthTask])
       .finally(function () {
         state.dashboardPromise = null;
         setLoadingState(false);
@@ -344,6 +429,8 @@
     renderWarningCenter(state.dashboard);
     renderTrendPrediction(state.dashboard);
     renderDatasourcePage(state.dashboard);
+    renderAiLabStatusPage(state.dashboard);
+    updateTopbarRuntime(state.dashboard);
   }
 
   function ensureBanner(container) {
@@ -393,6 +480,14 @@
       '<span class="source-pill bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">最新日期 ',
       escapeHtml(viewModel.meta.dataDate || '--'),
       '</span>',
+      '<span class="source-pill bg-white text-slate-700 border border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200">',
+      'AI_lab · ',
+      escapeHtml(viewModel.meta.schemaVersion || 'runtime'),
+      '</span>',
+      '<span class="source-pill bg-white text-slate-700 border border-slate-200 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200">',
+      '生成 ',
+      escapeHtml(formatRelativeTime(viewModel.meta.generatedAt)),
+      '</span>',
       '</div>',
       '</div>'
     ].join('');
@@ -429,6 +524,9 @@
           '</p>',
           '<p class="text-sm text-slate-500 mt-1">',
           escapeHtml(item.label),
+          '</p>',
+          '<p class="mt-3 text-[11px] font-bold text-slate-400 uppercase tracking-wide">',
+          'Powered by AI_lab',
           '</p>'
         ].join('');
       });
@@ -508,6 +606,22 @@
       return;
     }
 
+    var engineNote = tableShell.querySelector('[data-warning-engine-note]');
+    if (!engineNote) {
+      engineNote = document.createElement('div');
+      engineNote.setAttribute('data-warning-engine-note', 'true');
+      engineNote.className = 'px-5 py-4 border-b border-slate-100 dark:border-slate-800 text-sm text-slate-500';
+      tableShell.insertBefore(engineNote, tableShell.firstChild);
+    }
+    engineNote.innerHTML = [
+      '<div class="flex flex-wrap items-center gap-2">',
+      '<span class="source-pill bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">AI_lab rule-engine</span>',
+      '<span>当前预警由 AI_lab 运行时输出，数据时间 ',
+      escapeHtml(viewModel.meta.dataDate || '--'),
+      '</span>',
+      '</div>'
+    ].join('');
+
     var mobileList = tableShell.querySelector('[data-warning-mobile-list]');
     if (!mobileList) {
       mobileList = document.createElement('div');
@@ -522,6 +636,10 @@
     }
 
     var tbody = tableShell.querySelector('tbody');
+    var thead = tableShell.querySelector('thead tr');
+    if (thead) {
+      thead.innerHTML = '<th class="px-5 py-3">预警ID</th><th class="px-5 py-3">等级</th><th class="px-5 py-3">指标</th><th class="px-5 py-3">AI_lab 来源</th><th class="px-5 py-3">说明</th><th class="px-5 py-3">数据日期</th><th class="px-5 py-3">时间</th>';
+    }
     if (tbody) {
       tbody.innerHTML = viewModel.alerts.rows.slice(0, 8).map(function (row) {
         var palette = colorClasses(row.levelClass);
@@ -531,6 +649,7 @@
           '<td class="px-5 py-3 font-mono text-xs">', escapeHtml(row.id), '</td>',
           '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.level), '</span></td>',
           '<td class="px-5 py-3">', escapeHtml(row.indicator), '</td>',
+          '<td class="px-5 py-3 text-xs font-bold text-blue-600">AI_lab / alerts</td>',
           '<td class="px-5 py-3">', escapeHtml(row.area), '</td>',
           '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', statusPalette.chip, '">', escapeHtml(row.status), '</span></td>',
           '<td class="px-5 py-3 text-xs text-slate-500">', escapeHtml(row.time), '</td>',
@@ -547,6 +666,7 @@
         '<div>',
         '<p class="text-xs font-mono text-slate-400">', escapeHtml(row.id), '</p>',
         '<h3 class="text-sm font-bold mt-1">', escapeHtml(row.indicator), '</h3>',
+        '<p class="mt-2 text-[11px] font-bold text-blue-600">AI_lab / alerts</p>',
         '</div>',
         '<span class="px-2.5 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.level), '</span>',
         '</div>',
@@ -593,6 +713,33 @@
         child.classList.add('w-full');
       });
     }
+
+    var enginePanel = wrapper.querySelector('[data-ai-lab-trend-panel]');
+    if (!enginePanel) {
+      enginePanel = document.createElement('div');
+      enginePanel.setAttribute('data-ai-lab-trend-panel', 'true');
+      enginePanel.className = 'mobile-section-card';
+      wrapper.insertBefore(enginePanel, wrapper.children[2]);
+    }
+    enginePanel.innerHTML = [
+      '<div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">',
+      '<div>',
+      '<p class="text-xs font-bold uppercase tracking-wide text-slate-500">AI_lab 预测引擎</p>',
+      '<h2 class="text-lg font-bold mt-1">当前趋势外推由 AI_lab runtime 生成</h2>',
+      '<p class="text-sm text-slate-500 mt-2">模型口径 ',
+      escapeHtml(viewModel.meta.schemaVersion || 'rids-dashboard.v2'),
+      ' · 输出时间 ',
+      escapeHtml(formatRelativeTime(viewModel.meta.generatedAt)),
+      '</p>',
+      '</div>',
+      '<div class="flex flex-wrap gap-2">',
+      '<span class="source-pill bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">backend ',
+      escapeHtml((viewModel.meta.cache && viewModel.meta.cache.backend) || 'AI_lab'),
+      '</span>',
+      '<span class="source-pill bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">14 天趋势外推</span>',
+      '</div>',
+      '</div>'
+    ].join('');
 
     var chartCard = wrapper.querySelector('.bg-white.dark\\:bg-slate-900.border.border-slate-200.dark\\:border-slate-800.rounded-xl.p-6.shadow-sm');
     if (chartCard) {
@@ -649,18 +796,127 @@
       return;
     }
 
-    var infoTable = section.querySelector('table');
-    if (!infoTable) {
-      return;
-    }
-
     var heading = section.querySelector('h1');
     var subtitle = section.querySelector('p.text-slate-500');
     if (heading) {
       heading.textContent = '数据源与 Onboard 接入';
     }
     if (subtitle) {
-      subtitle.textContent = '当前前端已通过 AI_lab datasource 接口读取 ' + viewModel.meta.sourceLabel + ' 数据';
+      subtitle.textContent = '当前前端已通过 AI_lab datasource 接口读取 ' + viewModel.meta.sourceLabel + ' 数据，并展示 AI_lab 管道状态';
+    }
+
+    var statusGrid = section.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-4');
+    if (statusGrid) {
+      var cards = Array.prototype.slice.call(statusGrid.children);
+      var statusText = (state.runtimeHealth && state.runtimeHealth.online === false) ? '离线' : '在线';
+      var cardData = [
+        { title: 'AI_lab runtime', subtitle: state.runtimeHealth && state.runtimeHealth.service ? state.runtimeHealth.service : 'AI_lab', metaLeft: '状态', metaRight: statusText, badge: statusText, badgeClass: statusText === '在线' ? 'text-green-500 bg-green-50 dark:bg-green-900/20' : 'text-rose-500 bg-rose-50 dark:bg-rose-900/20' },
+        { title: viewModel.meta.sourceLabel, subtitle: 'datasource adapter', metaLeft: '数据日期', metaRight: viewModel.meta.dataDate || '--', badge: '已接入', badgeClass: 'text-blue-500 bg-blue-50 dark:bg-blue-900/20' },
+        { title: 'schema', subtitle: viewModel.meta.schemaVersion || 'rids-dashboard.v2', metaLeft: 'backend', metaRight: (viewModel.meta.cache && viewModel.meta.cache.backend) || 'AI_lab', badge: '投影中', badgeClass: 'text-amber-500 bg-amber-50 dark:bg-amber-900/20' },
+        { title: '公开输出', subtitle: 'dashboard / alerts', metaLeft: '生成', metaRight: formatRelativeTime(viewModel.meta.generatedAt), badge: String(viewModel.alerts.total), badgeClass: 'text-slate-500 bg-slate-100 dark:bg-slate-800' }
+      ];
+      cards.forEach(function (card, index) {
+        var item = cardData[index];
+        if (!item) {
+          return;
+        }
+        card.className = 'mobile-section-card';
+        card.innerHTML = [
+          '<div class="flex items-center justify-between mb-3">',
+          '<span class="text-[10px] font-bold uppercase tracking-widest text-slate-500">', escapeHtml(item.title), '</span>',
+          '<span class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded ', item.badgeClass, '">', escapeHtml(item.badge), '</span>',
+          '</div>',
+          '<h3 class="font-bold">', escapeHtml(item.subtitle), '</h3>',
+          '<div class="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3 mt-4 text-xs text-slate-500">',
+          '<span>', escapeHtml(item.metaLeft), '</span>',
+          '<span class="font-bold text-slate-900 dark:text-slate-100">', escapeHtml(item.metaRight), '</span>',
+          '</div>'
+        ].join('');
+      });
+    }
+
+    var infoTable = section.querySelector('table');
+    if (infoTable) {
+      var thead = infoTable.querySelector('thead tr');
+      var tbody = infoTable.querySelector('tbody');
+      if (thead) {
+        thead.innerHTML = '<th class="px-5 py-3">线路</th><th class="px-5 py-3">最新日期</th><th class="px-5 py-3">同步状态</th><th class="px-5 py-3">服务链路</th><th class="px-5 py-3">标签</th>';
+      }
+      if (tbody) {
+        tbody.innerHTML = viewModel.freshnessRows.map(function (row) {
+          var palette = colorClasses(row.statusColor);
+          return [
+            '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">',
+            '<td class="px-5 py-3 font-semibold">', escapeHtml(row.name), '</td>',
+            '<td class="px-5 py-3">', escapeHtml(row.zone), '</td>',
+            '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.type), '</span></td>',
+            '<td class="px-5 py-3 text-xs text-slate-500">ingest → normalize → serve</td>',
+            '<td class="px-5 py-3 text-xs font-bold text-blue-600">AI_lab</td>',
+            '</tr>'
+          ].join('');
+        }).join('');
+      }
+    }
+  }
+
+  function renderAiLabStatusPage(viewModel) {
+    var section = document.getElementById('page-ai-lab-status');
+    if (!section) {
+      return;
+    }
+
+    var runtimeGrid = document.getElementById('ai-lab-status-runtime');
+    var pipelineBody = document.getElementById('ai-lab-status-pipeline');
+    var metaBox = document.getElementById('ai-lab-status-meta');
+    var outputBox = document.getElementById('ai-lab-status-output');
+    var runtimeState = getRuntimeState(viewModel);
+    var cacheMeta = viewModel.meta.cache || {};
+
+    if (runtimeGrid) {
+      runtimeGrid.innerHTML = [
+        { label: '运行状态', value: runtimeState.label, tone: runtimeState.dotClass.indexOf('emerald') >= 0 ? 'text-emerald-600' : runtimeState.dotClass.indexOf('rose') >= 0 ? 'text-rose-600' : 'text-amber-600' },
+        { label: '服务名', value: (state.runtimeHealth && state.runtimeHealth.service) || viewModel.meta.runtimeService || 'AI_lab', tone: 'text-slate-900' },
+        { label: '数据日期', value: viewModel.meta.dataDate || '--', tone: 'text-slate-900' },
+        { label: 'Schema', value: viewModel.meta.schemaVersion || 'rids-dashboard.v2', tone: 'text-slate-900' }
+      ].map(function (item) {
+        return '<div class="mobile-section-card"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">' + escapeHtml(item.label) + '</p><p class="text-2xl font-black mt-2 ' + item.tone + '">' + escapeHtml(item.value) + '</p></div>';
+      }).join('');
+    }
+
+    if (pipelineBody) {
+      pipelineBody.innerHTML = viewModel.freshnessRows.map(function (row) {
+        var palette = colorClasses(row.statusColor);
+        return [
+          '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">',
+          '<td class="px-5 py-3 font-semibold">', escapeHtml(row.name), '</td>',
+          '<td class="px-5 py-3">', escapeHtml(row.zone), '</td>',
+          '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.type), '</span></td>',
+          '<td class="px-5 py-3 text-xs text-slate-500">AI_lab ingest → projection</td>',
+          '</tr>'
+        ].join('');
+      }).join('');
+    }
+
+    if (metaBox) {
+      metaBox.innerHTML = [
+        ['最近生成', formatRelativeTime(viewModel.meta.generatedAt)],
+        ['Health 检查', state.runtimeHealth && state.runtimeHealth.checkedAt ? formatRelativeTime(state.runtimeHealth.checkedAt) : '--'],
+        ['Cache backend', cacheMeta.backend || 'AI_lab'],
+        ['Cache last sync', cacheMeta.last_sync ? formatRelativeTime(cacheMeta.last_sync) : '--']
+      ].map(function (item) {
+        return '<div class="flex items-center justify-between gap-3"><span class="text-slate-500">' + escapeHtml(item[0]) + '</span><span class="font-bold text-slate-900 dark:text-slate-100">' + escapeHtml(item[1]) + '</span></div>';
+      }).join('');
+    }
+
+    if (outputBox) {
+      outputBox.innerHTML = [
+        ['公开数据源', viewModel.meta.sourceLabel],
+        ['活跃预警', String(viewModel.alerts.total)],
+        ['预测卡片', String(viewModel.projections.length)],
+        ['风险分', String(viewModel.risk.score)]
+      ].map(function (item) {
+        return '<div class="flex items-center justify-between gap-3"><span class="text-slate-500">' + escapeHtml(item[0]) + '</span><span class="font-bold text-slate-900 dark:text-slate-100">' + escapeHtml(item[1]) + '</span></div>';
+      }).join('');
     }
   }
 
@@ -705,6 +961,7 @@
     updateSidebarActive(path);
     updateMobileNavigation(path);
     updateTopbarUser();
+    updateTopbarRuntime();
 
     if (liveRoutes.indexOf(path) >= 0) {
       await ensureDashboardData(false);

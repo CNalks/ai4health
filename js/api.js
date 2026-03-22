@@ -62,7 +62,11 @@
         generatedAt: raw.generated_at || '',
         note: raw.trial_note || '',
         dataDate: overview.data_date || '',
-        isLive: true
+        isLive: true,
+        runtimeMode: raw.trial_mode ? 'trial' : 'formal',
+        schemaVersion: raw.schema_version || '',
+        runtimeService: 'AI_lab',
+        cache: raw.cache || {}
       },
       dashboardCards: [
         {
@@ -96,6 +100,7 @@
       },
       freshnessRows: freshness.map(function (item) {
         return {
+          tableName: item.table_name || '',
           name: item.label,
           zone: item.latest_date || '--',
           type: item.is_current ? '同步正常' : '待追更',
@@ -116,6 +121,8 @@
             levelClass: levelColor(item.level),
             indicator: item.title || '监测提示',
             area: item.message || '',
+            source: item.source || raw.source || 'rids',
+            engine: 'AI_lab rule-engine',
             status: item.report_date || overview.data_date || '--',
             statusClass: 'slate',
             time: item.report_date || overview.data_date || '--'
@@ -126,16 +133,19 @@
         {
           label: projections.flu && projections.flu.label ? projections.flu.label : '流感报告人数',
           value: projections.flu ? safeNumber(projections.flu.projected_next, 1) : 0,
+          method: projections.flu && projections.flu.method ? projections.flu.method : 'recent_average_delta',
           delta: projections.flu ? relativeTrend(projections.flu.change_percent, '%', 'text-rose-600', 'text-emerald-600') : { text: '0%', className: 'text-slate-500' }
         },
         {
           label: projections.fever && projections.fever.label ? projections.fever.label : '发热门诊就诊量',
           value: projections.fever ? safeNumber(projections.fever.projected_next, 1) : 0,
+          method: projections.fever && projections.fever.method ? projections.fever.method : 'recent_average_delta',
           delta: projections.fever ? relativeTrend(projections.fever.change_percent, '%', 'text-amber-600', 'text-emerald-600') : { text: '0%', className: 'text-slate-500' }
         },
         {
           label: projections.outbreaks && projections.outbreaks.label ? projections.outbreaks.label : '学校疫情起数',
           value: projections.outbreaks ? safeNumber(projections.outbreaks.projected_next, 1) : 0,
+          method: projections.outbreaks && projections.outbreaks.method ? projections.outbreaks.method : 'recent_average_delta',
           delta: projections.outbreaks ? relativeTrend(projections.outbreaks.change_percent, '%', 'text-rose-600', 'text-emerald-600') : { text: '0%', className: 'text-slate-500' }
         }
       ],
@@ -152,7 +162,10 @@
         generatedAt: '',
         note: '当前展示的是离线演示数据。连接 AI_lab 后会自动切换为真实监测数据。',
         dataDate: '',
-        isLive: false
+        isLive: false,
+        schemaVersion: 'demo',
+        runtimeService: 'AI_lab',
+        cache: {}
       },
       dashboardCards: [
         {
@@ -233,8 +246,36 @@
     }
   }
 
+  async function fetchHealth() {
+    var controller = new AbortController();
+    var timer = setTimeout(function () {
+      controller.abort();
+    }, window.APP_CONFIG.requestTimeoutMs);
+
+    try {
+      var response = await fetch(
+        window.APP_CONFIG.apiOrigin + '/health',
+        { signal: controller.signal }
+      );
+
+      if (!response.ok) {
+        throw new Error('Health request failed with status ' + response.status);
+      }
+
+      var raw = await response.json();
+      return {
+        online: raw && raw.status === 'ok',
+        service: raw && raw.service ? raw.service : 'AI_lab',
+        checkedAt: new Date().toISOString()
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   window.AI4HApi = {
     fetchDashboard: fetchDashboard,
+    fetchHealth: fetchHealth,
     buildMockViewModel: buildMockViewModel
   };
 })();
