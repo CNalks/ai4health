@@ -246,6 +246,93 @@
     }
   }
 
+  function buildAdminHeaders() {
+    var headers = {
+      'Content-Type': 'application/json'
+    };
+    var apiKey = String(window.APP_CONFIG.apiKey || '').trim();
+    if (apiKey) {
+      headers['X-API-KEY'] = apiKey;
+    }
+    return headers;
+  }
+
+  function setApiKey(value) {
+    var nextValue = String(value || '').trim();
+    window.APP_CONFIG.apiKey = nextValue;
+    sessionStorage.setItem('ai4health.apiKey', nextValue);
+    return nextValue;
+  }
+
+  async function fetchAdminJson(path, options) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () {
+      controller.abort();
+    }, window.APP_CONFIG.requestTimeoutMs);
+
+    try {
+      var requestOptions = Object.assign({}, options || {});
+      requestOptions.signal = controller.signal;
+      requestOptions.headers = Object.assign({}, buildAdminHeaders(), requestOptions.headers || {});
+      var response = await fetch(
+        window.APP_CONFIG.adminBase + path,
+        requestOptions
+      );
+
+      if (!response.ok) {
+        var errorText = '';
+        try {
+          var errorJson = await response.json();
+          errorText = errorJson && errorJson.detail ? errorJson.detail : JSON.stringify(errorJson);
+        } catch (ignored) {
+          errorText = await response.text();
+        }
+        throw new Error(errorText || ('Request failed with status ' + response.status));
+      }
+
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function listRegisteredDatasources() {
+    return fetchAdminJson('');
+  }
+
+  async function fetchDatasourceSyncStatus(slug) {
+    return fetchAdminJson('/' + encodeURIComponent(slug) + '/sync-status');
+  }
+
+  async function fetchDatasourceAlerts(slug, limit) {
+    return fetchAdminJson('/' + encodeURIComponent(slug) + '/alerts?limit=' + encodeURIComponent(limit || 20));
+  }
+
+  async function syncDatasource(slug, options) {
+    options = options || {};
+    var params = new URLSearchParams();
+    params.set('limit', String(options.limit || 8));
+    if (options.force) {
+      params.set('force', 'true');
+    }
+    return fetchAdminJson('/' + encodeURIComponent(slug) + '/sync?' + params.toString(), {
+      method: 'POST'
+    });
+  }
+
+  async function promoteDatasource(slug) {
+    return fetchAdminJson('/' + encodeURIComponent(slug) + '/promote', {
+      method: 'POST'
+    });
+  }
+
+  async function onboardDatasource(payload) {
+    return fetchAdminJson('/onboard', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
   async function fetchHealth() {
     var controller = new AbortController();
     var timer = setTimeout(function () {
@@ -276,6 +363,13 @@
   window.AI4HApi = {
     fetchDashboard: fetchDashboard,
     fetchHealth: fetchHealth,
-    buildMockViewModel: buildMockViewModel
+    buildMockViewModel: buildMockViewModel,
+    setApiKey: setApiKey,
+    listRegisteredDatasources: listRegisteredDatasources,
+    fetchDatasourceSyncStatus: fetchDatasourceSyncStatus,
+    fetchDatasourceAlerts: fetchDatasourceAlerts,
+    syncDatasource: syncDatasource,
+    promoteDatasource: promoteDatasource,
+    onboardDatasource: onboardDatasource
   };
 })();

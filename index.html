@@ -1279,8 +1279,8 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
   <div class="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-black tracking-tight">AI_lab 引擎状态</h1>
-        <p class="text-slate-500 text-sm">查看当前运行时、数据管道和公开服务状态</p>
+        <h1 class="text-2xl font-black tracking-tight">AI_lab Console</h1>
+        <p class="text-slate-500 text-sm">直接完成 datasource onboard、sync、promote 与 alerts 检查</p>
       </div>
       <div class="flex gap-3">
         <button data-nav-link="/data-sources" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
@@ -1289,33 +1289,113 @@ body { font-family: 'Noto Sans SC', 'Inter', sans-serif; }
       </div>
     </div>
     <div id="ai-lab-status-runtime" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"></div>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-          <h2 class="font-bold">AI_lab 管道总览</h2>
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div class="xl:col-span-2 space-y-6">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+          <div class="flex flex-col lg:flex-row lg:items-end gap-4 justify-between">
+            <div>
+              <h2 class="font-bold">管理连接</h2>
+              <p class="text-sm text-slate-500 mt-1">当前页面默认同域访问 AI_lab 管理接口，执行写操作前需要提供 API Key。</p>
+            </div>
+            <button data-action="ai-lab-refresh-console" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">refresh</span>刷新控制台
+            </button>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-5">
+            <label class="block">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-500">API Origin</span>
+              <input id="ai-lab-console-origin" type="text" readonly class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm text-slate-600 dark:text-slate-200" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-500">X-API-KEY</span>
+              <input id="ai-lab-console-api-key" type="password" placeholder="请输入 AI_lab 管理 API Key" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm" />
+            </label>
+          </div>
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button data-action="ai-lab-save-api-key" class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">vpn_key</span>保存 API Key
+            </button>
+            <span id="ai-lab-console-status" class="text-sm text-slate-500">等待读取管理接口。</span>
+          </div>
         </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 text-slate-500 font-medium text-xs">
-              <tr>
-                <th class="px-5 py-3">线路</th>
-                <th class="px-5 py-3">最新日期</th>
-                <th class="px-5 py-3">同步</th>
-                <th class="px-5 py-3">服务链路</th>
-              </tr>
-            </thead>
-            <tbody id="ai-lab-status-pipeline" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
-          </table>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
+          <div class="flex flex-col md:flex-row md:items-end gap-4 justify-between">
+            <div>
+              <h2 class="font-bold">Datasource Onboard</h2>
+              <p class="text-sm text-slate-500 mt-1">注册新的 datasource 到 AI_lab runtime。这个表单直接对应 `/api/v1/datasources/onboard`。</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+            <label class="block">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-500">slug</span>
+              <input id="ai-lab-onboard-slug" type="text" placeholder="例如 demo_source" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-500">label</span>
+              <input id="ai-lab-onboard-label" type="text" placeholder="例如 Demo Source" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm" />
+            </label>
+            <label class="block md:col-span-2">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-500">adapter</span>
+              <input id="ai-lab-onboard-adapter" type="text" placeholder="例如 app.services.rids_service.RidsAdapter" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-500">capabilities</span>
+              <input id="ai-lab-onboard-capabilities" type="text" value="dashboard" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm" />
+            </label>
+            <label class="block">
+              <span class="text-xs font-bold uppercase tracking-wide text-slate-500">settings JSON</span>
+              <textarea id="ai-lab-onboard-settings" rows="5" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm" placeholder='{"supabase_url":"","api_key":""}'></textarea>
+            </label>
+          </div>
+          <div class="mt-4 flex flex-wrap gap-4 text-sm">
+            <label class="inline-flex items-center gap-2">
+              <input id="ai-lab-onboard-enabled" type="checkbox" checked class="rounded border-slate-300 text-primary focus:ring-primary" />
+              <span>enabled</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input id="ai-lab-onboard-public" type="checkbox" checked class="rounded border-slate-300 text-primary focus:ring-primary" />
+              <span>public_enabled</span>
+            </label>
+            <label class="inline-flex items-center gap-2">
+              <input id="ai-lab-onboard-overwrite" type="checkbox" class="rounded border-slate-300 text-primary focus:ring-primary" />
+              <span>overwrite existing</span>
+            </label>
+          </div>
+          <div class="mt-5 flex flex-wrap items-center gap-3">
+            <button data-action="ai-lab-onboard-submit" class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+              <span class="material-symbols-outlined text-sm">add_circle</span>注册 Datasource
+            </button>
+            <span id="ai-lab-onboard-result" class="text-sm text-slate-500">尚未提交。</span>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+          <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between gap-4">
+            <div>
+              <h2 class="font-bold">Registered Datasources</h2>
+              <p class="text-sm text-slate-500 mt-1">选中后可直接执行 sync、promote，并查看 sync-status 与 alerts。</p>
+            </div>
+            <span id="ai-lab-console-selected" class="text-xs font-bold uppercase tracking-wide text-slate-400">未选择</span>
+          </div>
+          <div id="ai-lab-console-datasources" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
         </div>
       </div>
+
       <div class="space-y-6">
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
-          <h2 class="font-bold mb-4">运行时元数据</h2>
+          <h2 class="font-bold mb-4">Datasource 状态</h2>
           <div id="ai-lab-status-meta" class="space-y-3 text-sm"></div>
         </div>
         <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm p-5">
-          <h2 class="font-bold mb-4">公开输出</h2>
+          <h2 class="font-bold mb-4">最近告警</h2>
           <div id="ai-lab-status-output" class="space-y-3 text-sm"></div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h2 class="font-bold">同步与投影结果</h2>
+          </div>
+          <div id="ai-lab-status-pipeline" class="p-5 space-y-3 text-sm"></div>
         </div>
       </div>
     </div>

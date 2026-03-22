@@ -31,7 +31,19 @@
     dashboardPromise: null,
     dashboardStatus: 'idle',
     runtimeHealth: null,
-    errorMessage: ''
+    errorMessage: '',
+    console: {
+      datasources: [],
+      selectedSlug: window.APP_CONFIG.defaultSource,
+      syncStatus: null,
+      alerts: [],
+      activity: [],
+      statusMessage: '等待读取管理接口。',
+      statusTone: 'text-slate-500',
+      onboardMessage: '尚未提交。',
+      onboardTone: 'text-slate-500',
+      loading: false
+    }
   };
 
   function parseHashRoute() {
@@ -368,6 +380,166 @@
     });
   }
 
+  function setConsoleStatus(message, tone) {
+    state.console.statusMessage = message;
+    state.console.statusTone = tone || 'text-slate-500';
+  }
+
+  function setOnboardStatus(message, tone) {
+    state.console.onboardMessage = message;
+    state.console.onboardTone = tone || 'text-slate-500';
+  }
+
+  function appendConsoleActivity(title, payload, tone) {
+    state.console.activity.unshift({
+      title: title,
+      payload: payload,
+      tone: tone || 'slate',
+      at: new Date().toISOString()
+    });
+    state.console.activity = state.console.activity.slice(0, 8);
+  }
+
+  function ensureSelectedDatasource() {
+    var list = state.console.datasources || [];
+    if (!list.length) {
+      state.console.selectedSlug = '';
+      return '';
+    }
+    var exists = list.some(function (item) {
+      return item.slug === state.console.selectedSlug;
+    });
+    if (exists) {
+      return state.console.selectedSlug;
+    }
+    state.console.selectedSlug = list[0].slug;
+    return state.console.selectedSlug;
+  }
+
+  function getAdminApiKey() {
+    return String(window.APP_CONFIG.apiKey || '').trim();
+  }
+
+  async function loadConsoleDatasourceDetails(slug) {
+    if (!slug) {
+      state.console.syncStatus = null;
+      state.console.alerts = [];
+      return;
+    }
+    state.console.syncStatus = await window.AI4HApi.fetchDatasourceSyncStatus(slug);
+    state.console.alerts = await window.AI4HApi.fetchDatasourceAlerts(slug, 8);
+  }
+
+  async function loadConsoleData(force) {
+    if (!getAdminApiKey()) {
+      state.console.datasources = [];
+      state.console.syncStatus = null;
+      state.console.alerts = [];
+      setConsoleStatus('请先提供 X-API-KEY，才能读取 AI_lab 管理接口。', 'text-amber-600');
+      renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+      return;
+    }
+    if (state.console.loading && !force) {
+      return;
+    }
+
+    state.console.loading = true;
+    setConsoleStatus('正在读取 datasource 列表...', 'text-slate-500');
+    renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+
+    try {
+      state.console.datasources = await window.AI4HApi.listRegisteredDatasources();
+      var selectedSlug = ensureSelectedDatasource();
+      await loadConsoleDatasourceDetails(selectedSlug);
+      setConsoleStatus('AI_lab 管理接口已同步。', 'text-emerald-600');
+    } catch (error) {
+      state.console.datasources = [];
+      state.console.syncStatus = null;
+      state.console.alerts = [];
+      setConsoleStatus(error && error.message ? error.message : '读取 AI_lab 管理接口失败。', 'text-rose-600');
+    } finally {
+      state.console.loading = false;
+      renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+    }
+  }
+
+  async function selectConsoleDatasource(slug) {
+    state.console.selectedSlug = slug;
+    setConsoleStatus('正在读取 ' + slug + ' 的状态...', 'text-slate-500');
+    renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+    try {
+      await loadConsoleDatasourceDetails(slug);
+      setConsoleStatus('已切换到 datasource `' + slug + '`。', 'text-emerald-600');
+    } catch (error) {
+      state.console.syncStatus = null;
+      state.console.alerts = [];
+      setConsoleStatus(error && error.message ? error.message : '读取 datasource 详情失败。', 'text-rose-600');
+    }
+    renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+  }
+
+  function readOnboardPayload() {
+    var settingsText = (document.getElementById('ai-lab-onboard-settings') || {}).value || '{}';
+    var settings;
+    try {
+      settings = JSON.parse(settingsText || '{}');
+    } catch (error) {
+      throw new Error('settings JSON 格式不正确');
+    }
+
+    var capabilitiesRaw = ((document.getElementById('ai-lab-onboard-capabilities') || {}).value || 'dashboard').split(',');
+    var capabilities = capabilitiesRaw.map(function (item) {
+      return item.trim();
+    }).filter(Boolean);
+
+    return {
+      slug: ((document.getElementById('ai-lab-onboard-slug') || {}).value || '').trim(),
+      label: ((document.getElementById('ai-lab-onboard-label') || {}).value || '').trim(),
+      adapter: ((document.getElementById('ai-lab-onboard-adapter') || {}).value || '').trim(),
+      enabled: !!((document.getElementById('ai-lab-onboard-enabled') || {}).checked),
+      public_enabled: !!((document.getElementById('ai-lab-onboard-public') || {}).checked),
+      overwrite: !!((document.getElementById('ai-lab-onboard-overwrite') || {}).checked),
+      capabilities: capabilities.length ? capabilities : ['dashboard'],
+      settings: settings
+    };
+  }
+
+  async function submitOnboardDatasource() {
+    var payload = readOnboardPayload();
+    if (!payload.slug || !payload.label || !payload.adapter) {
+      throw new Error('slug、label、adapter 不能为空');
+    }
+    var result = await window.AI4HApi.onboardDatasource(payload);
+    if (!result || !result.datasource || !result.datasource.slug) {
+      throw new Error('AI_lab 返回的注册响应不完整');
+    }
+    state.console.selectedSlug = result.datasource.slug;
+    setOnboardStatus('Datasource `' + result.datasource.slug + '` 注册成功。', 'text-emerald-600');
+    appendConsoleActivity('onboard', result, 'emerald');
+    await loadConsoleData(true);
+    return result;
+  }
+
+  async function runDatasourceCommand(action) {
+    var slug = state.console.selectedSlug;
+    if (!slug) {
+      throw new Error('当前没有可操作的 datasource');
+    }
+
+    var result;
+    if (action === 'sync') {
+      result = await window.AI4HApi.syncDatasource(slug, { limit: 8, force: true });
+    } else if (action === 'promote') {
+      result = await window.AI4HApi.promoteDatasource(slug);
+    } else {
+      throw new Error('未知操作');
+    }
+
+    appendConsoleActivity(action, result, action === 'sync' ? 'blue' : 'amber');
+    await loadConsoleData(true);
+    return result;
+  }
+
   async function ensureDashboardData(force) {
     if (state.dashboard && !force) {
       return state.dashboard;
@@ -431,6 +603,46 @@
     renderDatasourcePage(state.dashboard);
     renderAiLabStatusPage(state.dashboard);
     updateTopbarRuntime(state.dashboard);
+  }
+
+  function renderConsoleDatasourceList() {
+    var container = document.getElementById('ai-lab-console-datasources');
+    var selectedEl = document.getElementById('ai-lab-console-selected');
+    if (!container || !selectedEl) {
+      return;
+    }
+
+    var datasources = state.console.datasources || [];
+    selectedEl.textContent = state.console.selectedSlug ? ('当前 ' + state.console.selectedSlug) : '未选择';
+
+    if (!datasources.length) {
+      container.innerHTML = '<div class="p-5 text-sm text-slate-500">没有可显示的 datasource。先保存 API Key，然后刷新控制台。</div>';
+      return;
+    }
+
+    container.innerHTML = datasources.map(function (item) {
+      var isActive = item.slug === state.console.selectedSlug;
+      var activeClass = isActive ? 'border-primary bg-primary/5' : 'border-transparent';
+      return [
+        '<article class="p-5 border-l-4 ', activeClass, '">',
+        '<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">',
+        '<div class="space-y-1">',
+        '<div class="flex items-center gap-2 flex-wrap">',
+        '<h3 class="text-base font-bold">', escapeHtml(item.label), '</h3>',
+        '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-200">', escapeHtml(item.slug), '</span>',
+        '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">', escapeHtml(item.adapter), '</span>',
+        '</div>',
+        '<p class="text-sm text-slate-500">capabilities: ', escapeHtml((item.capabilities || []).join(', ') || 'dashboard'), '</p>',
+        '</div>',
+        '<div class="flex flex-wrap gap-2">',
+        '<button data-action="ai-lab-select-datasource" data-slug="', escapeHtml(item.slug), '" class="px-3 py-2 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">查看状态</button>',
+        '<button data-action="ai-lab-sync-datasource" data-slug="', escapeHtml(item.slug), '" class="px-3 py-2 rounded-lg text-xs font-bold bg-primary text-white">Sync</button>',
+        '<button data-action="ai-lab-promote-datasource" data-slug="', escapeHtml(item.slug), '" class="px-3 py-2 rounded-lg text-xs font-bold bg-amber-500 text-white">Promote</button>',
+        '</div>',
+        '</div>',
+        '</article>'
+      ].join('');
+    }).join('');
   }
 
   function ensureBanner(container) {
@@ -869,55 +1081,101 @@
     var pipelineBody = document.getElementById('ai-lab-status-pipeline');
     var metaBox = document.getElementById('ai-lab-status-meta');
     var outputBox = document.getElementById('ai-lab-status-output');
+    var consoleStatus = document.getElementById('ai-lab-console-status');
+    var consoleOrigin = document.getElementById('ai-lab-console-origin');
+    var consoleApiKey = document.getElementById('ai-lab-console-api-key');
+    var onboardResult = document.getElementById('ai-lab-onboard-result');
     var runtimeState = getRuntimeState(viewModel);
     var cacheMeta = viewModel.meta.cache || {};
+    var syncStatus = state.console.syncStatus || {};
+    var activity = state.console.activity || [];
+    var alerts = state.console.alerts || [];
+
+    if (consoleOrigin) {
+      consoleOrigin.value = window.APP_CONFIG.apiOrigin || window.location.origin;
+    }
+    if (consoleApiKey && consoleApiKey.value !== getAdminApiKey()) {
+      consoleApiKey.value = getAdminApiKey();
+    }
+    if (consoleStatus) {
+      consoleStatus.className = 'text-sm ' + state.console.statusTone;
+      consoleStatus.textContent = state.console.statusMessage;
+    }
+    if (onboardResult) {
+      onboardResult.className = 'text-sm ' + state.console.onboardTone;
+      onboardResult.textContent = state.console.onboardMessage;
+    }
 
     if (runtimeGrid) {
       runtimeGrid.innerHTML = [
         { label: '运行状态', value: runtimeState.label, tone: runtimeState.dotClass.indexOf('emerald') >= 0 ? 'text-emerald-600' : runtimeState.dotClass.indexOf('rose') >= 0 ? 'text-rose-600' : 'text-amber-600' },
         { label: '服务名', value: (state.runtimeHealth && state.runtimeHealth.service) || viewModel.meta.runtimeService || 'AI_lab', tone: 'text-slate-900' },
         { label: '数据日期', value: viewModel.meta.dataDate || '--', tone: 'text-slate-900' },
-        { label: 'Schema', value: viewModel.meta.schemaVersion || 'rids-dashboard.v2', tone: 'text-slate-900' }
+        { label: 'Datasource 数', value: String((state.console.datasources || []).length || 0), tone: 'text-slate-900' }
       ].map(function (item) {
         return '<div class="mobile-section-card"><p class="text-xs font-bold uppercase tracking-wide text-slate-500">' + escapeHtml(item.label) + '</p><p class="text-2xl font-black mt-2 ' + item.tone + '">' + escapeHtml(item.value) + '</p></div>';
       }).join('');
     }
 
     if (pipelineBody) {
-      pipelineBody.innerHTML = viewModel.freshnessRows.map(function (row) {
-        var palette = colorClasses(row.statusColor);
-        return [
-          '<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50">',
-          '<td class="px-5 py-3 font-semibold">', escapeHtml(row.name), '</td>',
-          '<td class="px-5 py-3">', escapeHtml(row.zone), '</td>',
-          '<td class="px-5 py-3"><span class="px-2 py-0.5 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(row.type), '</span></td>',
-          '<td class="px-5 py-3 text-xs text-slate-500">AI_lab ingest → projection</td>',
-          '</tr>'
-        ].join('');
-      }).join('');
+      if (!activity.length) {
+        pipelineBody.innerHTML = '<div class="text-sm text-slate-500">还没有管理操作记录。执行一次 onboard、sync 或 promote 后会显示结果。</div>';
+      } else {
+        pipelineBody.innerHTML = activity.map(function (item) {
+          var palette = colorClasses(item.tone);
+          return [
+            '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+            '<div class="flex items-center justify-between gap-3">',
+            '<span class="px-2 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(item.title), '</span>',
+            '<span class="text-xs text-slate-400">', escapeHtml(formatRelativeTime(item.at)), '</span>',
+            '</div>',
+            '<pre class="mt-3 text-xs whitespace-pre-wrap break-all text-slate-600 dark:text-slate-300">', escapeHtml(JSON.stringify(item.payload, null, 2)), '</pre>',
+            '</article>'
+          ].join('');
+        }).join('');
+      }
     }
 
     if (metaBox) {
       metaBox.innerHTML = [
-        ['最近生成', formatRelativeTime(viewModel.meta.generatedAt)],
-        ['Health 检查', state.runtimeHealth && state.runtimeHealth.checkedAt ? formatRelativeTime(state.runtimeHealth.checkedAt) : '--'],
-        ['Cache backend', cacheMeta.backend || 'AI_lab'],
-        ['Cache last sync', cacheMeta.last_sync ? formatRelativeTime(cacheMeta.last_sync) : '--']
+        ['当前 datasource', state.console.selectedSlug || '--'],
+        ['最近同步', syncStatus.synced_at ? formatRelativeTime(syncStatus.synced_at) : '--'],
+        ['数据日期', syncStatus.data_date || '--'],
+        ['indicator_count', String(syncStatus.indicator_count || 0)],
+        ['observation_count', String(syncStatus.observation_count || 0)],
+        ['Cache backend', (syncStatus.cache && syncStatus.cache.backend) || cacheMeta.backend || 'AI_lab']
       ].map(function (item) {
         return '<div class="flex items-center justify-between gap-3"><span class="text-slate-500">' + escapeHtml(item[0]) + '</span><span class="font-bold text-slate-900 dark:text-slate-100">' + escapeHtml(item[1]) + '</span></div>';
       }).join('');
     }
 
     if (outputBox) {
-      outputBox.innerHTML = [
-        ['公开数据源', viewModel.meta.sourceLabel],
-        ['活跃预警', String(viewModel.alerts.total)],
-        ['预测卡片', String(viewModel.projections.length)],
-        ['风险分', String(viewModel.risk.score)]
-      ].map(function (item) {
-        return '<div class="flex items-center justify-between gap-3"><span class="text-slate-500">' + escapeHtml(item[0]) + '</span><span class="font-bold text-slate-900 dark:text-slate-100">' + escapeHtml(item[1]) + '</span></div>';
-      }).join('');
+      if (!alerts.length) {
+        outputBox.innerHTML = '<div class="text-sm text-slate-500">当前 datasource 没有可显示的 alerts。</div>';
+      } else {
+        outputBox.innerHTML = alerts.map(function (item) {
+          var level = item.severity || item.level || 'info';
+          var palette = colorClasses(level === 'critical' ? 'rose' : level === 'high' ? 'amber' : level === 'medium' ? 'yellow' : 'blue');
+          return [
+            '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+            '<div class="flex items-start justify-between gap-3">',
+            '<div>',
+            '<p class="text-sm font-bold">', escapeHtml(item.title || item.datasource || state.console.selectedSlug || 'alert'), '</p>',
+            '<p class="text-xs text-slate-500 mt-1">', escapeHtml(item.message || '无说明'), '</p>',
+            '</div>',
+            '<span class="px-2 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(level), '</span>',
+            '</div>',
+            '<div class="mt-3 flex items-center justify-between text-xs text-slate-400">',
+            '<span>', escapeHtml(item.status || 'new'), '</span>',
+            '<span>', escapeHtml(item.created_at || item.report_date || '--'), '</span>',
+            '</div>',
+            '</article>'
+          ].join('');
+        }).join('');
+      }
     }
+
+    renderConsoleDatasourceList();
   }
 
   function showPages(path) {
@@ -965,6 +1223,9 @@
 
     if (liveRoutes.indexOf(path) >= 0) {
       await ensureDashboardData(false);
+      if (path === '/ai-lab-status') {
+        await loadConsoleData(false);
+      }
     }
   }
 
@@ -994,6 +1255,41 @@
             return;
           case 'toggle-dark':
             document.documentElement.classList.toggle('dark');
+            return;
+          case 'ai-lab-save-api-key':
+            var apiKeyInput = document.getElementById('ai-lab-console-api-key');
+            window.AI4HApi.setApiKey(apiKeyInput ? apiKeyInput.value : '');
+            setConsoleStatus('API Key 已保存到当前会话。', 'text-emerald-600');
+            renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+            return;
+          case 'ai-lab-refresh-console':
+            loadConsoleData(true).catch(function (error) {
+              setConsoleStatus(error && error.message ? error.message : '刷新 AI_lab Console 失败。', 'text-rose-600');
+              renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+            });
+            return;
+          case 'ai-lab-onboard-submit':
+            submitOnboardDatasource().catch(function (error) {
+              setOnboardStatus(error && error.message ? error.message : '注册 datasource 失败。', 'text-rose-600');
+              renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+            });
+            return;
+          case 'ai-lab-select-datasource':
+            selectConsoleDatasource(actionEl.getAttribute('data-slug'));
+            return;
+          case 'ai-lab-sync-datasource':
+            state.console.selectedSlug = actionEl.getAttribute('data-slug') || state.console.selectedSlug;
+            runDatasourceCommand('sync').catch(function (error) {
+              setConsoleStatus(error && error.message ? error.message : 'sync 失败。', 'text-rose-600');
+              renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+            });
+            return;
+          case 'ai-lab-promote-datasource':
+            state.console.selectedSlug = actionEl.getAttribute('data-slug') || state.console.selectedSlug;
+            runDatasourceCommand('promote').catch(function (error) {
+              setConsoleStatus(error && error.message ? error.message : 'promote 失败。', 'text-rose-600');
+              renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
+            });
             return;
           default:
             showToast(action + ' - 功能演示');
