@@ -37,6 +37,9 @@
       selectedSlug: window.APP_CONFIG.defaultSource,
       syncStatus: null,
       alerts: [],
+      rules: [],
+      history: [],
+      indicators: [],
       activity: [],
       statusMessage: '等待读取管理接口。',
       statusTone: 'text-slate-500',
@@ -424,10 +427,25 @@
     if (!slug) {
       state.console.syncStatus = null;
       state.console.alerts = [];
+      state.console.rules = [];
+      state.console.history = [];
+      state.console.indicators = [];
       return;
     }
-    state.console.syncStatus = await window.AI4HApi.fetchDatasourceSyncStatus(slug);
-    state.console.alerts = await window.AI4HApi.fetchDatasourceAlerts(slug, 8);
+    var detailResults = await Promise.all([
+      window.AI4HApi.fetchDatasourceSyncStatus(slug),
+      window.AI4HApi.fetchDatasourceAlerts(slug, 8),
+      window.AI4HApi.fetchDatasourceRules(slug, false),
+      window.AI4HApi.fetchDatasourceHistory(slug, 10),
+      window.AI4HApi.fetchDatasourceIndicators(slug).catch(function () {
+        return [];
+      })
+    ]);
+    state.console.syncStatus = detailResults[0];
+    state.console.alerts = detailResults[1];
+    state.console.rules = detailResults[2];
+    state.console.history = detailResults[3];
+    state.console.indicators = detailResults[4];
   }
 
   async function loadConsoleData(force) {
@@ -435,6 +453,9 @@
       state.console.datasources = [];
       state.console.syncStatus = null;
       state.console.alerts = [];
+      state.console.rules = [];
+      state.console.history = [];
+      state.console.indicators = [];
       setConsoleStatus('请先提供 X-API-KEY，才能读取 AI_lab 管理接口。', 'text-amber-600');
       renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
       return;
@@ -456,6 +477,9 @@
       state.console.datasources = [];
       state.console.syncStatus = null;
       state.console.alerts = [];
+      state.console.rules = [];
+      state.console.history = [];
+      state.console.indicators = [];
       setConsoleStatus(error && error.message ? error.message : '读取 AI_lab 管理接口失败。', 'text-rose-600');
     } finally {
       state.console.loading = false;
@@ -473,6 +497,9 @@
     } catch (error) {
       state.console.syncStatus = null;
       state.console.alerts = [];
+      state.console.rules = [];
+      state.console.history = [];
+      state.console.indicators = [];
       setConsoleStatus(error && error.message ? error.message : '读取 datasource 详情失败。', 'text-rose-600');
     }
     renderAiLabStatusPage(state.dashboard || window.AI4HApi.buildMockViewModel(MOCK));
@@ -1090,6 +1117,19 @@
     var syncStatus = state.console.syncStatus || {};
     var activity = state.console.activity || [];
     var alerts = state.console.alerts || [];
+    var rules = state.console.rules || [];
+    var history = state.console.history || [];
+    var indicators = state.console.indicators || [];
+    var stateStore = syncStatus.state_store || {};
+    var cacheStatus = syncStatus.cache || {};
+    var lastOperation = history.length ? history[0] : null;
+    var ruleIndex = {};
+
+    rules.forEach(function (item) {
+      if (item && item.id) {
+        ruleIndex[String(item.id)] = item;
+      }
+    });
 
     if (consoleOrigin) {
       consoleOrigin.value = window.APP_CONFIG.apiOrigin || window.location.origin;
@@ -1118,18 +1158,36 @@
     }
 
     if (pipelineBody) {
-      if (!activity.length) {
+      var operationItems = history.length ? history : activity.map(function (item, index) {
+        return {
+          id: 'local-' + String(index),
+          operation: item.title || 'activity',
+          status: item.tone === 'rose' ? 'error' : 'ok',
+          summary: item.title || 'activity',
+          created_at: item.at,
+          finished_at: item.at,
+          payload: item.payload || {}
+        };
+      });
+      if (!operationItems.length) {
         pipelineBody.innerHTML = '<div class="text-sm text-slate-500">还没有管理操作记录。执行一次 onboard、sync 或 promote 后会显示结果。</div>';
       } else {
-        pipelineBody.innerHTML = activity.map(function (item) {
-          var palette = colorClasses(item.tone);
+        pipelineBody.innerHTML = operationItems.map(function (item) {
+          var tone = item.status === 'error' ? 'rose' : item.operation === 'promote' ? 'amber' : item.operation === 'sync' ? 'blue' : 'emerald';
+          var palette = colorClasses(tone);
           return [
             '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
             '<div class="flex items-center justify-between gap-3">',
-            '<span class="px-2 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(item.title), '</span>',
-            '<span class="text-xs text-slate-400">', escapeHtml(formatRelativeTime(item.at)), '</span>',
+            '<span class="px-2 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(item.operation || 'operation'), '</span>',
+            '<span class="text-xs text-slate-400">', escapeHtml(formatRelativeTime(item.finished_at || item.created_at)), '</span>',
             '</div>',
-            '<pre class="mt-3 text-xs whitespace-pre-wrap break-all text-slate-600 dark:text-slate-300">', escapeHtml(JSON.stringify(item.payload, null, 2)), '</pre>',
+            '<p class="mt-3 text-sm font-medium text-slate-900 dark:text-slate-100">', escapeHtml(item.summary || 'No summary'), '</p>',
+            '<div class="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">',
+            '<span>status: ', escapeHtml(item.status || 'ok'), '</span>',
+            '<span>started: ', escapeHtml(formatDate(item.created_at || '--')), '</span>',
+            '<span>finished: ', escapeHtml(formatDate(item.finished_at || '--')), '</span>',
+            '</div>',
+            '<pre class="mt-3 text-xs whitespace-pre-wrap break-all text-slate-600 dark:text-slate-300">', escapeHtml(JSON.stringify(item.payload || {}, null, 2)), '</pre>',
             '</article>'
           ].join('');
         }).join('');
@@ -1141,9 +1199,14 @@
         ['当前 datasource', state.console.selectedSlug || '--'],
         ['最近同步', syncStatus.synced_at ? formatRelativeTime(syncStatus.synced_at) : '--'],
         ['数据日期', syncStatus.data_date || '--'],
-        ['indicator_count', String(syncStatus.indicator_count || 0)],
-        ['observation_count', String(syncStatus.observation_count || 0)],
-        ['Cache backend', (syncStatus.cache && syncStatus.cache.backend) || cacheMeta.backend || 'AI_lab']
+        ['Last sync', cacheStatus.last_sync ? formatRelativeTime(cacheStatus.last_sync) : (stateStore.synced_at ? formatRelativeTime(stateStore.synced_at) : '--')],
+        ['Canonical data date', stateStore.data_date || syncStatus.data_date || '--'],
+        ['Indicator count', String(stateStore.indicator_count || indicators.length || 0)],
+        ['Observation count', String(stateStore.observation_count || 0)],
+        ['Cache backend', cacheMeta.backend || 'AI_lab'],
+        ['Cache state', cacheStatus.exists ? (cacheStatus.stale ? 'stale' : 'fresh') : 'empty'],
+        ['Last operation', lastOperation ? ((lastOperation.operation || 'operation') + ' / ' + (lastOperation.status || 'ok')) : '--'],
+        ['Projection state', (syncStatus.promotion && syncStatus.promotion.status) || 'unknown']
       ].map(function (item) {
         return '<div class="flex items-center justify-between gap-3"><span class="text-slate-500">' + escapeHtml(item[0]) + '</span><span class="font-bold text-slate-900 dark:text-slate-100">' + escapeHtml(item[1]) + '</span></div>';
       }).join('');
@@ -1173,6 +1236,59 @@
           ].join('');
         }).join('');
       }
+    }
+
+    if (outputBox) {
+      var ruleHtml = rules.length ? rules.map(function (item) {
+        var palette = colorClasses(item.is_active ? 'emerald' : 'blue');
+        return [
+          '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+          '<div class="flex items-start justify-between gap-3">',
+          '<div>',
+          '<p class="text-sm font-bold">', escapeHtml(item.series_name || item.indicator_key || 'rule'), '</p>',
+          '<p class="text-xs text-slate-500 mt-1">', escapeHtml((item.metric || '--') + ' ' + (item.operator || '--') + ' ' + String(item.threshold == null ? '--' : item.threshold)), '</p>',
+          '</div>',
+          '<span class="px-2 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(item.severity || 'info'), '</span>',
+          '</div>',
+          '<div class="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">',
+          '<span>indicator: ', escapeHtml(item.indicator_key || '--'), '</span>',
+          '<span>active: ', escapeHtml(String(!!item.is_active)), '</span>',
+          '<span>rule_id: ', escapeHtml(item.id || '--'), '</span>',
+          '</div>',
+          '</article>'
+        ].join('');
+      }).join('') : '<div class="text-sm text-slate-500">No rules available for the current datasource.</div>';
+
+      var alertHtml = alerts.length ? alerts.map(function (item) {
+        var level = item.severity || item.level || 'info';
+        var palette = colorClasses(level === 'critical' ? 'rose' : level === 'high' ? 'amber' : level === 'medium' ? 'yellow' : 'blue');
+        var rule = item.rule_id ? ruleIndex[String(item.rule_id)] : null;
+        var ruleContext = rule ? ((rule.metric || '--') + ' ' + (rule.operator || '--') + ' ' + String(rule.threshold == null ? '--' : rule.threshold)) : (item.metric || 'rule unavailable');
+        return [
+          '<article class="rounded-xl border border-slate-200 dark:border-slate-700 p-4">',
+          '<div class="flex items-start justify-between gap-3">',
+          '<div>',
+          '<p class="text-sm font-bold">', escapeHtml(item.series_name || item.datasource || state.console.selectedSlug || 'alert'), '</p>',
+          '<p class="text-xs text-slate-500 mt-1">', escapeHtml(item.content || 'No detail'), '</p>',
+          '</div>',
+          '<span class="px-2 py-1 rounded-full text-xs font-bold ', palette.chip, '">', escapeHtml(level), '</span>',
+          '</div>',
+          '<div class="mt-3 grid grid-cols-1 gap-1 text-xs text-slate-400">',
+          '<span>rule: ', escapeHtml(ruleContext), '</span>',
+          '<span>indicator: ', escapeHtml(item.indicator_key || '--'), '</span>',
+          '<span>status: ', escapeHtml(item.status || 'new'), ' | triggered: ', escapeHtml(item.triggered_value == null ? '--' : item.triggered_value), '</span>',
+          '<span>rule_id: ', escapeHtml(item.rule_id || '--'), ' | created: ', escapeHtml(formatDate(item.created_at || item.report_date || '--')), '</span>',
+          '</div>',
+          '</article>'
+        ].join('');
+      }).join('') : '<div class="text-sm text-slate-500">No alerts available for the current datasource.</div>';
+
+      outputBox.innerHTML = [
+        '<div class="space-y-4">',
+        '<div><p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Rules</p>', ruleHtml, '</div>',
+        '<div><p class="text-xs font-bold uppercase tracking-wide text-slate-500 mb-3">Alerts</p>', alertHtml, '</div>',
+        '</div>'
+      ].join('');
     }
 
     renderConsoleDatasourceList();

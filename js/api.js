@@ -246,6 +246,35 @@
     }
   }
 
+  async function fetchPublicJson(path) {
+    var controller = new AbortController();
+    var timer = setTimeout(function () {
+      controller.abort();
+    }, window.APP_CONFIG.requestTimeoutMs);
+
+    try {
+      var response = await fetch(
+        window.APP_CONFIG.datasourceBase + path,
+        { signal: controller.signal }
+      );
+
+      if (!response.ok) {
+        var errorText = '';
+        try {
+          var errorJson = await response.json();
+          errorText = errorJson && errorJson.detail ? errorJson.detail : JSON.stringify(errorJson);
+        } catch (ignored) {
+          errorText = await response.text();
+        }
+        throw new Error(errorText || ('Request failed with status ' + response.status));
+      }
+
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   function buildAdminHeaders() {
     var headers = {
       'Content-Type': 'application/json'
@@ -308,6 +337,15 @@
     return fetchAdminJson('/' + encodeURIComponent(slug) + '/alerts?limit=' + encodeURIComponent(limit || 20));
   }
 
+  async function fetchDatasourceRules(slug, activeOnly) {
+    var query = activeOnly ? '?active_only=true' : '';
+    return fetchAdminJson('/' + encodeURIComponent(slug) + '/rules' + query);
+  }
+
+  async function fetchDatasourceHistory(slug, limit) {
+    return fetchAdminJson('/' + encodeURIComponent(slug) + '/history?limit=' + encodeURIComponent(limit || 10));
+  }
+
   async function syncDatasource(slug, options) {
     options = options || {};
     var params = new URLSearchParams();
@@ -331,6 +369,10 @@
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  }
+
+  async function fetchDatasourceIndicators(slug) {
+    return fetchPublicJson('/' + encodeURIComponent(slug) + '/indicators');
   }
 
   async function fetchHealth() {
@@ -368,6 +410,9 @@
     listRegisteredDatasources: listRegisteredDatasources,
     fetchDatasourceSyncStatus: fetchDatasourceSyncStatus,
     fetchDatasourceAlerts: fetchDatasourceAlerts,
+    fetchDatasourceRules: fetchDatasourceRules,
+    fetchDatasourceHistory: fetchDatasourceHistory,
+    fetchDatasourceIndicators: fetchDatasourceIndicators,
     syncDatasource: syncDatasource,
     promoteDatasource: promoteDatasource,
     onboardDatasource: onboardDatasource
