@@ -4,11 +4,11 @@
   "rewrites": [
     {
       "source": "/api/*",
-      "destination": "http://1.13.141.254/api/:splat"
+      "destination": "http://129.211.228.122/api/:splat"
     },
     {
       "source": "/health",
-      "destination": "http://1.13.141.254/health"
+      "destination": "http://129.211.228.122/health"
     }
   ],
   "headers": [
